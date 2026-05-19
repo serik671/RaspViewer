@@ -7,6 +7,6 @@ import java.util.Map;
  *
  * @author SLakeev
  */
-public record StudGroup(Map<DayOfWeek, WorkDay> days) {
+public record StudGroup(Map<DayOfWeek, WorkDay> days, String info) {
 
 }

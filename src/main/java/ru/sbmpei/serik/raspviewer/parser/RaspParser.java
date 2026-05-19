@@ -21,7 +21,6 @@ import ru.sbmpei.serik.raspviewer.parser.model.StudGroup;
 import ru.sbmpei.serik.raspviewer.parser.model.StudSubject;
 import ru.sbmpei.serik.raspviewer.parser.model.WorkDay;
 import ru.sbmpei.serik.raspviewer.parser.model.WorkSubject;
-import ru.sbmpei.serik.raspviewer.parser.model.WorkTime;
 
 /**
  *
@@ -32,6 +31,8 @@ public class RaspParser {
     private final int GROUP_NAME_ROW = 1;
     private final int DAY_OF_WEEK_COLUMN = 0;
     private final int WORK_TIME_COLUMN = 1;
+
+    private static final String ANOTHER_TIME_PREFIX = "Another Time:";
 
     private final CellRangeAddress EMPTY_ADDRESS = CellRangeAddress.valueOf("A1:A1");
 
@@ -62,7 +63,7 @@ public class RaspParser {
                     .mapToObj(rasp::getSheetAt).forEach(this::parseSheet);
         } catch (Exception e) {
             IO.println("Exception: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.out);
         }
         return studGroups;
     }
@@ -121,7 +122,6 @@ public class RaspParser {
             if (row == null) {
                 break;
             }
-            IO.print(row.getRowNum() + ": ");
             for (int j = WORK_TIME_COLUMN + 1;; j++) {
                 Cell cell = row.getCell(j);
                 if (cell == null) {
@@ -155,7 +155,7 @@ public class RaspParser {
         }
         StudGroup group = studGroups.get(groupName);
         if (group == null) {
-            group = new StudGroup(new HashMap<>());
+            group = new StudGroup(new HashMap<>(), sheet.getSheetName());
             studGroups.put(groupName, group);
         }
 
@@ -195,6 +195,7 @@ public class RaspParser {
                 if (containClassesInfo(studSubject)) {
                     WorkSubject subject = workDay.workSubjects().get(workTimeForRow(sheet, row - 1)); // На предыдущей строке искать пару
                     subject.getOddSubject().info().add(studSubject.title());
+                    subject.getOddSubject().info().add(ANOTHER_TIME_PREFIX + workTimeKey);
                     workSubject.setOddSubject(StudSubject.EMPTY);
                 } else {
                     workSubject.setOddSubject(studSubject);
@@ -211,6 +212,7 @@ public class RaspParser {
             if (containClassesInfo(studSubject)) {
                 WorkSubject subject = workDay.workSubjects().get(workTimeForRow(sheet, row - 1)); // На предыдущей строке искать пару
                 subject.getEvenSubject().info().add(studSubject.title());
+                subject.getEvenSubject().info().add(ANOTHER_TIME_PREFIX + workTimeKey);
                 workSubject.setEvenSubject(StudSubject.EMPTY);
             } else {
                 workSubject.setEvenSubject(studSubject);
