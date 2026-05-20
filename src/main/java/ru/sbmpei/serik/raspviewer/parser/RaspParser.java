@@ -19,6 +19,7 @@ import org.apache.poi.ss.util.CellAddress;
 import org.apache.poi.ss.util.CellRangeAddress;
 import ru.sbmpei.serik.raspviewer.parser.model.StudGroup;
 import ru.sbmpei.serik.raspviewer.parser.model.StudSubject;
+import ru.sbmpei.serik.raspviewer.parser.model.StudSubject.SubjectInfo;
 import ru.sbmpei.serik.raspviewer.parser.model.WorkDay;
 import ru.sbmpei.serik.raspviewer.parser.model.WorkSubject;
 
@@ -31,8 +32,6 @@ public class RaspParser {
     private final int GROUP_NAME_ROW = 1;
     private final int DAY_OF_WEEK_COLUMN = 0;
     private final int WORK_TIME_COLUMN = 1;
-
-    private static final String ANOTHER_TIME_PREFIX = "Another Time:";
 
     private final CellRangeAddress EMPTY_ADDRESS = CellRangeAddress.valueOf("A1:A1");
 
@@ -69,28 +68,32 @@ public class RaspParser {
     }
 
     private void parseSheet(Sheet sheet) {
-        IO.println(sheet.getSheetName());
-//        parseGroups(sheet);
-        parseStudDays(sheet);
+        int rowIndex = GROUP_NAME_ROW + 1;
+        for (int i = rowIndex;; i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) {
+                break;
+            }
+            for (int j = WORK_TIME_COLUMN + 1;; j++) {
+                Cell cell = row.getCell(j);
+                if (cell == null) {
+                    break;
+                }
+
+                CellRangeAddress region = mergedRegion(sheet, cell.getAddress());
+
+                if (cellAddressEquals(region, EMPTY_ADDRESS)) {
+                    fillStudSubject(sheet, cellValue(cell), cell, 1);
+                } else {
+                    Cell firstCell = firstCellFromRegion(sheet, region);
+                    int numberOfColumns = region.getLastColumn() - region.getFirstColumn() + 1;
+                    fillStudSubject(sheet, cellValue(firstCell), cell, numberOfColumns);
+                    j = region.getLastColumn();
+                }
+            }
+        }
     }
 
-//    private void parseGroups(Sheet sheet) {
-//        Row row = sheet.getRow(GROUP_NAME_ROW);
-//        if (row != null) { // TODO: add throw exception if null
-//            List<StudGroup> groups = new ArrayList<>();
-//            for (int i = 0;; i++) {
-//                Cell cell = row.getCell(i);
-//                if (cell == null) {
-//                    break;
-//                }
-//                String groupName = cellValue(cell);
-//                if (StringUtils.isNotBlank(groupName)) {
-//                    groups.add(new StudGroup(groupName, mergedRegion(sheet, cell.getAddress())));
-//                }
-//            }
-//            IO.println(groups);
-//        }
-//    }
     private CellRangeAddress mergedRegion(Sheet sheet, CellAddress cellAddress) {
         return sheet.getMergedRegions().stream()
                 .filter(r -> r.isInRange(cellAddress))
@@ -103,7 +106,6 @@ public class RaspParser {
                 .findFirst().orElse(EMPTY_ADDRESS);
     }
 
-//    private Stream<CellRangeAddress>
     private String cellValue(Cell cell) {
         return switch (cell.getCellType()) {
             case CellType.STRING ->
@@ -115,32 +117,6 @@ public class RaspParser {
         };
     }
 
-    private void parseStudDays(Sheet sheet) {
-        int rowIndex = GROUP_NAME_ROW + 1;
-        for (int i = rowIndex;; i++) {
-            Row row = sheet.getRow(i);
-            if (row == null) {
-                break;
-            }
-            for (int j = WORK_TIME_COLUMN + 1;; j++) {
-                Cell cell = row.getCell(j);
-                if (cell == null) {
-                    break;
-                }
-                CellRangeAddress region = mergedRegion(sheet, cell.getAddress());
-
-                if (cellAddressEquals(region, EMPTY_ADDRESS)) {
-                    fillStudSubject(sheet, cellValue(cell), row.getRowNum(), cell.getColumnIndex(), 1);
-                } else {
-                    Cell firstCell = firstCellFromRegion(sheet, region);
-                    int numberOfColumns = region.getLastColumn() - region.getFirstColumn() + 1;
-                    fillStudSubject(sheet, cellValue(firstCell), row.getRowNum(), cell.getColumnIndex(), numberOfColumns);
-                    j = region.getLastColumn();
-                }
-            }
-        }
-    }
-
     private boolean cellAddressEquals(CellRangeAddress address1, CellRangeAddress address2) {
         if (address1 == null || address2 == null) {
             return address1 == address2;
@@ -148,9 +124,13 @@ public class RaspParser {
         return address1.formatAsString().equals(address2.formatAsString());
     }
 
-    private void fillStudSubject(Sheet sheet, String value, int row, int cell, int numberOfColumns) {
+    private void fillStudSubject(Sheet sheet, String value, Cell c, int numberOfColumns) {
+        int cell = c.getColumnIndex();
+        int row = c.getRowIndex();
+
         String groupName = groupNameForColumn(sheet, cell);
         if (StringUtils.isBlank(groupName)) {
+            // TODO: add log - for cell don't found group name
             return;
         }
         StudGroup group = studGroups.get(groupName);
@@ -161,6 +141,7 @@ public class RaspParser {
 
         DayOfWeek day = workDayForRow(sheet, row);
         if (day == null) {
+            // TODO: add log - for cell don't found day of week
             return;
         }
         WorkDay workDay = group.days().get(day);
@@ -171,8 +152,10 @@ public class RaspParser {
 
         String workTimeKey = workTimeForRow(sheet, row);
         if (StringUtils.isBlank(workTimeKey)) {
+            // TODO: add log - for cell don't found time range
             return;
         }
+        // TODO: check time range
         WorkSubject workSubject = workDay.workSubjects().get(workTimeKey);
         if (workSubject == null) {
             workSubject = new WorkSubject();
@@ -194,8 +177,8 @@ public class RaspParser {
             } else if (workSubject.getOddSubject() == null) { // нечётная неделя
                 if (containClassesInfo(studSubject)) {
                     WorkSubject subject = workDay.workSubjects().get(workTimeForRow(sheet, row - 1)); // На предыдущей строке искать пару
-                    subject.getOddSubject().info().add(studSubject.title());
-                    subject.getOddSubject().info().add(ANOTHER_TIME_PREFIX + workTimeKey);
+                    subject.getOddSubject().info().add(new SubjectInfo(studSubject.title(), SubjectInfo.Type.CLASSES));
+                    subject.getOddSubject().info().add(new SubjectInfo(workTimeKey, SubjectInfo.Type.ANOTHER_TIME));
                     workSubject.setOddSubject(StudSubject.EMPTY);
                 } else {
                     workSubject.setOddSubject(studSubject);
@@ -204,15 +187,15 @@ public class RaspParser {
         } else if (cell == groupRange.getLastColumn()) {
             if (workSubject.getDenominatorSubject() == null
                     && !studSubjectIsNullOrEmpty(workSubject.getNumeratorSubject())) {
-                workSubject.getNumeratorSubject().info().add(studSubject.title()); // Аудитория по числителю
+                workSubject.getNumeratorSubject().info().add(new SubjectInfo(studSubject.title(), SubjectInfo.Type.AUDIENCE)); // Аудитория по числителю
             } else if (!studSubjectIsNullOrEmpty(workSubject.getDenominatorSubject())) {
-                workSubject.getDenominatorSubject().info().add(studSubject.title()); // Аудитория по знаменателю
+                workSubject.getDenominatorSubject().info().add(new SubjectInfo(studSubject.title(), SubjectInfo.Type.AUDIENCE)); // Аудитория по знаменателю
             }
         } else if (workSubject.getEvenSubject() == null) { // если чётная неделя |0|1|
             if (containClassesInfo(studSubject)) {
                 WorkSubject subject = workDay.workSubjects().get(workTimeForRow(sheet, row - 1)); // На предыдущей строке искать пару
-                subject.getEvenSubject().info().add(studSubject.title());
-                subject.getEvenSubject().info().add(ANOTHER_TIME_PREFIX + workTimeKey);
+                subject.getEvenSubject().info().add(new SubjectInfo(studSubject.title(), SubjectInfo.Type.CLASSES));
+                subject.getEvenSubject().info().add(new SubjectInfo(workTimeKey, SubjectInfo.Type.ANOTHER_TIME));
                 workSubject.setEvenSubject(StudSubject.EMPTY);
             } else {
                 workSubject.setEvenSubject(studSubject);

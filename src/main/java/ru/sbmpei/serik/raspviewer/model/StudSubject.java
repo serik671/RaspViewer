@@ -1,45 +1,27 @@
 package ru.sbmpei.serik.raspviewer.model;
 
 import java.time.DayOfWeek;
-import java.util.regex.Pattern;
+import java.util.List;
+import lombok.Data;
 
 /**
  *
  * @author SLakeev
  */
+@Data
 public class StudSubject implements Comparable<StudSubject> {
 
     private final String title;
-    private final String timeString;
     private final DayOfWeek day;
-
+    private final String timeString;
     private final Type type;
+    private final String audience;
+    private final List<Integer> weeks;
+    private final List<String> teachers;
+    private final String subgroup;
 
     public static enum Type {
         NUMERATOR, DENOMINATOR, EVEN, ODD
-    }
-
-    public StudSubject(String title, String timeString, DayOfWeek day, Type type) {
-        this.title = title;
-        this.timeString = timeString;
-        this.day = day;
-        this.type = type;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getTimeString() {
-        return timeString;
-    }
-
-    public DayOfWeek getDay() {
-        return day;
-    }
-
-    public Type getType() {
-        return type;
     }
 
     @Override
@@ -49,6 +31,10 @@ public class StudSubject implements Comparable<StudSubject> {
         } else {
             return day.compareTo(o.day);
         }
+    }
+
+    public StudSubject withTimeString(String timeString) {
+        return new StudSubject(title, day, timeString, type, audience, weeks, teachers, subgroup);
     }
 
 }
