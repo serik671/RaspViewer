@@ -2,10 +2,10 @@ package ru.sbmpei.serik.raspviewer;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import ru.sbmpei.serik.raspviewer.mapper.RaspModelMapper;
+import ru.sbmpei.serik.raspviewer.model.Group;
 import ru.sbmpei.serik.raspviewer.parser.RaspParser;
 import ru.sbmpei.serik.raspviewer.parser.model.StudGroup;
 import ru.sbmpei.serik.raspviewer.service.RaspService;
@@ -35,12 +35,12 @@ public class RaspViewer {
         IO.println("Промежуточная модель успешно создана.");
 
         IO.println("Обработка промежуточной модели...");
-        List<ru.sbmpei.serik.raspviewer.model.StudGroup> groups = RaspModelMapper.transformRaspModel(result);
+        List<? extends Group> groups = RaspModelMapper.transformRaspModel(result);
         IO.println("Рабочая модель успешно создана!");
 
-        System.out.printf("Идёт %d неделя\n", currentWeek());
-
-        new RaspViewerCLI(new RaspService(groups, beginDate)).run();
+        RaspService raspService = new RaspService(groups, beginDate);
+        System.out.printf("Идёт %d неделя\n", raspService.currentWeek(LocalDate.now()));
+        new RaspViewerCLI(raspService).run();
 
     }
 
@@ -54,12 +54,8 @@ public class RaspViewer {
             }
         } else {
             fileName = IO.readln("Укажие файл расписания: ");
-            beginDate = LocalDate.parse(IO.readln("Введите дату начала семестра(гггг-мм-дд): "));
+            beginDate = LocalDate.parse(IO.readln("Введите дату начала семестра(ГГГГ-ММ-ДД): "));
         }
-    }
-
-    private static int currentWeek() {
-        return (int) ChronoUnit.WEEKS.between(beginDate, LocalDate.now()) + 1;
     }
 
 }
