@@ -113,8 +113,11 @@ public class RaspModelMapper {
     }
 
     private static String clearSubjectTitle(String title) {
-        return cutFromText(title, TEACHERS_PATTERN, r1
-                -> cutFromText(r1, AUDIENCE_PATTERN, String::strip));
+        return cutFromText(title, TEACHERS_PATTERN,
+                r1 -> cutFromText(r1, AUDIENCE_PATTERN,
+                        String::strip
+                )
+        );
     }
 
     private static String cutFromText(String text, Pattern p, Function<String, String> action) {

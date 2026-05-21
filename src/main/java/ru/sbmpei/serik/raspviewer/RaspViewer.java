@@ -1,15 +1,14 @@
 package ru.sbmpei.serik.raspviewer;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.Period;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.List;
 import java.util.Map;
 import ru.sbmpei.serik.raspviewer.mapper.RaspModelMapper;
 import ru.sbmpei.serik.raspviewer.parser.RaspParser;
 import ru.sbmpei.serik.raspviewer.parser.model.StudGroup;
+import ru.sbmpei.serik.raspviewer.service.RaspService;
 
 /**
  *
@@ -23,16 +22,12 @@ public class RaspViewer {
     public static void main(String[] args) {
         System.out.println("RaspViewer");
 
-        if (args.length > 0) {
-            fileName = args[0];
-            if (args.length > 1) {
-                beginDate = LocalDate.parse(args[1]);
-            } else {
-                beginDate = LocalDate.parse(IO.readln("Введите дату начала семестра(гггг-мм-дд): "));
-            }
-        } else {
-            fileName = IO.readln("Укажие файл расписания: ");
-            beginDate = LocalDate.parse(IO.readln("Введите дату начала семестра(гггг-мм-дд): "));
+        try {
+            init(args);
+        } catch (DateTimeParseException e) {
+            IO.println("Введённое значение '" + e.getParsedString() + "' не соответствует дате в формате: ГГГГ-ММ-ДД");
+            IO.println("Система завершила работу: Неудалось инициализировать систему");
+            System.exit(0);
         }
 
         IO.println("Промежуточная обработака файла...");
@@ -45,17 +40,22 @@ public class RaspViewer {
 
         System.out.printf("Идёт %d неделя\n", currentWeek());
 
-        new RaspViewerCLI(groups, beginDate).run();
+        new RaspViewerCLI(new RaspService(groups, beginDate)).run();
 
-        // Show result
-//        groups.forEach(sg -> {
-//            System.out.printf("%s %d курс\n", sg.getName(), sg.getCourseNumber());
-//            sg.getSubjects().stream().sorted().forEach(subject -> {
-//                System.out.printf("%s | %s | %s | %s | %s | %s | %s | %s\n", subject.getDay(), subject.getTimeString(),
-//                        subject.getTitle(), subject.getTeachers(), subject.getType(),
-//                        subject.getAudience(), subject.getWeeks(), subject.getSubgroup());
-//            });
-//        });
+    }
+
+    private static void init(String[] args) throws DateTimeParseException {
+        if (args.length > 0) {
+            fileName = args[0];
+            if (args.length > 1) {
+                beginDate = LocalDate.parse(args[1]);
+            } else {
+                beginDate = LocalDate.parse(IO.readln("Введите дату начала семестра(ГГГГ-ММ-ДД): "));
+            }
+        } else {
+            fileName = IO.readln("Укажие файл расписания: ");
+            beginDate = LocalDate.parse(IO.readln("Введите дату начала семестра(гггг-мм-дд): "));
+        }
     }
 
     private static int currentWeek() {

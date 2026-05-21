@@ -58,11 +58,12 @@ public class RaspParser {
     public Map<String, StudGroup> parse() {
         try (Workbook rasp = new HSSFWorkbook(new FileInputStream(fileName))) {
             IntStream.range(0, rasp.getNumberOfSheets())
-                    .limit(1) // TODO: remove limit for production
+                    .limit(2) // TODO: remove limit for production
                     .mapToObj(rasp::getSheetAt).forEach(this::parseSheet);
         } catch (Exception e) {
-            IO.println("Exception: " + e.getMessage());
             e.printStackTrace(System.out);
+            IO.println("Система завершила работу: Неудалось обработать файл");
+            System.exit(0);
         }
         return studGroups;
     }
@@ -111,7 +112,7 @@ public class RaspParser {
             case CellType.STRING ->
                 cell.getStringCellValue();
             case CellType.NUMERIC ->
-                String.valueOf(cell.getNumericCellValue());
+                String.valueOf((int) cell.getNumericCellValue());
             default ->
                 "";
         };

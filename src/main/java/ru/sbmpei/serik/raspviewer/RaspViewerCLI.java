@@ -1,12 +1,10 @@
 package ru.sbmpei.serik.raspviewer;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
-import ru.sbmpei.serik.raspviewer.model.StudGroup;
-import ru.sbmpei.serik.raspviewer.model.StudSubject;
+import ru.sbmpei.serik.raspviewer.model.Group;
+import ru.sbmpei.serik.raspviewer.service.Service;
 
 /**
  *
@@ -21,15 +19,13 @@ public class RaspViewerCLI implements Runnable {
     private final String SELECT_CMD = "select";
     private final String SHOW_CMD = "show";
 
-    private final List<StudGroup> groups;
-    private final LocalDate beginDate;
+    private final Service service;
+
+    public RaspViewerCLI(Service service) {
+        this.service = service;
+    }
 
     private String currentGroup = null;
-
-    public RaspViewerCLI(List<StudGroup> groups, LocalDate beginDate) {
-        this.groups = groups;
-        this.beginDate = beginDate;
-    }
 
     @Override
     public void run() {
@@ -68,11 +64,11 @@ public class RaspViewerCLI implements Runnable {
     }
 
     private void showGroups() {
-        groups.stream().map(StudGroup::getName).forEach(IO::println);
+        service.groupList().stream().map(Group::getName).forEach(IO::println);
     }
 
     private void selectGroup(String title) {
-        String groupName = groups.stream().map(StudGroup::getName)
+        String groupName = service.groupList().stream().map(Group::getName)
                 .filter(it -> it.equals(title)).findFirst()
                 .orElse("");
         if (StringUtils.isBlank(groupName)) {
@@ -85,40 +81,21 @@ public class RaspViewerCLI implements Runnable {
     private void showDay() {
         try {
             LocalDate date = LocalDate.parse(IO.readln("Date: "));
-            DayOfWeek dayOfWeek = date.getDayOfWeek();
-            int week = week(date);
-            IO.println(dayOfWeek + " " + week + " week");
-            StudGroup studGroup = groups.stream().filter(it -> it.getName().equals(currentGroup)).findFirst().get();
-            studGroup.getSubjects().stream().sorted()
-                    .filter(it -> it.getDay() == dayOfWeek)
-                    .filter(it -> {
-                        if (week % 2 == 0) {
-                            return it.getType() == StudSubject.Type.DENOMINATOR
-                                    || it.getType() == StudSubject.Type.EVEN;
-                        } else {
-                            return it.getType() == StudSubject.Type.NUMERATOR
-                                    || it.getType() == StudSubject.Type.ODD;
+            IO.println(date.getDayOfWeek() + " " + service.currentWeek(date) + " week");
+            service.subjectsOfGroupForDays(List.of(date), currentGroup)
+                    .forEach(subject -> {
+                        IO.print(subject.getTimeString() + "|" + subject.getTitle() + "|" + subject.getAudience());
+                        if (!subject.getTeachers().isEmpty()) {
+                            IO.print("|" + subject.getTeachers());
                         }
-                    }).filter(it -> {
-                if (it.getWeeks().isEmpty()) {
-                    return true;
-                } else {
-                    return it.getWeeks().contains(week);
-                }
-            }).forEach(subject -> {
-                IO.print(subject.getTimeString() + "|" + subject.getTitle() + "|" + subject.getAudience());
-                if (StringUtils.isNotBlank(subject.getSubgroup())) {
-                    IO.println("|" + "!!! " + subject.getSubgroup() + " !!!");
-                }
-                IO.println();
-            });
+                        if (StringUtils.isNotBlank(subject.getSubgroup())) {
+                            IO.print("|" + "!!! " + subject.getSubgroup() + " !!!");
+                        }
+                        IO.println();
+                    });
         } catch (Exception e) {
             IO.println(e.getMessage());
         }
-    }
-
-    private int week(LocalDate date) {
-        return (int) ChronoUnit.WEEKS.between(beginDate, date) + 1;
     }
 
 }

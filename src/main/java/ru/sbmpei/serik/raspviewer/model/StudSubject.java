@@ -9,7 +9,7 @@ import lombok.Data;
  * @author SLakeev
  */
 @Data
-public class StudSubject implements Comparable<StudSubject> {
+public class StudSubject implements Subject, Comparable<StudSubject> {
 
     private final String title;
     private final DayOfWeek day;
@@ -35,6 +35,26 @@ public class StudSubject implements Comparable<StudSubject> {
 
     public StudSubject withTimeString(String timeString) {
         return new StudSubject(title, day, timeString, type, audience, weeks, teachers, subgroup);
+    }
+
+    @Override
+    public boolean isNumerator() {
+        return type == Type.NUMERATOR;
+    }
+
+    @Override
+    public boolean isDenominator() {
+        return type == Type.DENOMINATOR;
+    }
+
+    @Override
+    public boolean isEven() {
+        return type == Type.EVEN;
+    }
+
+    @Override
+    public boolean isOdd() {
+        return type == Type.ODD;
     }
 
 }

@@ -7,7 +7,7 @@ import java.util.List;
  *
  * @author SLakeev
  */
-public class StudGroup {
+public class StudGroup implements Group {
 
     private final String name;
     private final int courseNumber;
@@ -18,14 +18,17 @@ public class StudGroup {
         this.courseNumber = courseNumber;
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public int getCourseNumber() {
         return courseNumber;
     }
 
+    @Override
     public List<StudSubject> getSubjects() {
         return subjects;
     }
