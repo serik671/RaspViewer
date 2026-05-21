@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
+import ru.sbmpei.serik.raspviewer.model.Group;
 import ru.sbmpei.serik.raspviewer.model.StudGroup;
 import ru.sbmpei.serik.raspviewer.model.StudSubject;
 import ru.sbmpei.serik.raspviewer.parser.model.StudSubject.SubjectInfo;
@@ -33,8 +34,8 @@ public class RaspModelMapper {
     private static final Pattern SUBGROUP_PATTERN = Pattern.compile("\\d+\\sпгр.");
     private static final Pattern TEACHERS_PATTERN = Pattern.compile("([a-я]+\\.)+\\s[A-я]+\\s[A-Я]\\.[A-Я]\\.");
 
-    public static List<StudGroup> transformRaspModel(Map<String, ru.sbmpei.serik.raspviewer.parser.model.StudGroup> raspModel) {
-        List<StudGroup> groups = new ArrayList<>();
+    public static List<Group> transformRaspModel(Map<String, ru.sbmpei.serik.raspviewer.parser.model.StudGroup> raspModel) {
+        List<Group> groups = new ArrayList<>();
         raspModel.forEach((key, value) -> {
             Matcher matcher = COURSE_NUMBER_PATTERN.matcher(value.info());
             String courseString = matcher.find() ? matcher.group(COURSE_GROUP_NAME) : "0";

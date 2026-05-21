@@ -35,7 +35,7 @@ public class RaspViewer {
         IO.println("Промежуточная модель успешно создана.");
 
         IO.println("Обработка промежуточной модели...");
-        List<? extends Group> groups = RaspModelMapper.transformRaspModel(result);
+        List<Group> groups = RaspModelMapper.transformRaspModel(result);
         IO.println("Рабочая модель успешно создана!");
 
         RaspService raspService = new RaspService(groups, beginDate);
