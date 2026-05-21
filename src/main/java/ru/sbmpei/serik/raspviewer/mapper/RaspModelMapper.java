@@ -11,6 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import ru.sbmpei.serik.raspviewer.model.Group;
 import ru.sbmpei.serik.raspviewer.model.StudGroup;
@@ -75,9 +76,15 @@ public class RaspModelMapper {
                 audienceFromValue(studSubject.title()),
                 audienceFromSubjectInfo(studSubject.info())
         );
+
+        List<Integer> weeks = ListUtils.union(
+                weeksFromValue(studSubject.title()),
+                weeksFromSubjectInfo(studSubject.info())
+        );
+
         StudSubject subject = new StudSubject(clearSubjectTitle(studSubject.title()),
                 dayKey, timeKey, type, audience,
-                weeksFromSubjectInfo(studSubject.info()),
+                weeks,
                 teachersFromSubjectTitle(studSubject.title()),
                 subgroupFromSubjectInfo(studSubject.info())
         );
@@ -95,15 +102,20 @@ public class RaspModelMapper {
 
         if (subjectInfoOptional.isPresent()) {
             String value = subjectInfoOptional.get().value();
-            Matcher matcher = WEEK_NUMBERS_PATTERN.matcher(value);
-            if (matcher.find()) {
-                String weeks = matcher.group(WEEK_GROUP_NAME);
-                return Stream.of(weeks.split(WEEK_DELIMITER))
-                        .map(Integer::parseInt)
-                        .collect(Collectors.toList());
-            }
+            weeksFromValue(value);
         }
 
+        return List.of();
+    }
+
+    private static List<Integer> weeksFromValue(String value) {
+        Matcher matcher = WEEK_NUMBERS_PATTERN.matcher(value);
+        if (matcher.find()) {
+            String weeks = matcher.group(WEEK_GROUP_NAME);
+            return Stream.of(weeks.split(WEEK_DELIMITER))
+                    .map(Integer::parseInt)
+                    .collect(Collectors.toList());
+        }
         return List.of();
     }
 
@@ -116,7 +128,9 @@ public class RaspModelMapper {
     private static String clearSubjectTitle(String title) {
         return cutFromText(title, TEACHERS_PATTERN,
                 r1 -> cutFromText(r1, AUDIENCE_PATTERN,
-                        String::strip
+                        r2 -> cutFromText(r2, WEEK_NUMBERS_PATTERN,
+                                String::strip
+                        )
                 )
         );
     }
