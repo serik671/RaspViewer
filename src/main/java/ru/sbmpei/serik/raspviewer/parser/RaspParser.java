@@ -35,7 +35,8 @@ public class RaspParser {
 
     private final CellRangeAddress EMPTY_ADDRESS = CellRangeAddress.valueOf("A1:A1");
 
-    private final Pattern classesInfoPattern = Pattern.compile("(\\d\\sи\\s)*\\d\\sпара");
+    private final Pattern CLASSES_INFO_PATTERN = Pattern.compile("\\d\\sи\\s\\d\\sпара");
+    private final Pattern SUBJECT_FACTOR = Pattern.compile("([a-я]+\\.)+\\s[A-я]+\\s[A-Я]\\.[A-Я]\\.");
 
     public static Map<String, DayOfWeek> dayOfWeek = Collections.unmodifiableMap(
             Map.of(
@@ -58,7 +59,7 @@ public class RaspParser {
     public Map<String, StudGroup> parse() {
         try (Workbook rasp = new HSSFWorkbook(new FileInputStream(fileName))) {
             IntStream.range(0, rasp.getNumberOfSheets())
-                    .limit(2) // TODO: remove limit for production
+                    //                    .limit(2) // TODO: remove limit for production
                     .mapToObj(rasp::getSheetAt).forEach(this::parseSheet);
         } catch (Exception e) {
             e.printStackTrace(System.out);
@@ -176,8 +177,10 @@ public class RaspParser {
                     workSubject.setDenominatorSubject(studSubject);
                 }
             } else if (workSubject.getOddSubject() == null) { // нечётная неделя
-                if (containClassesInfo(studSubject)) {
+                if (containClassesInfo(studSubject) && !containsSubject(studSubject)) {
                     WorkSubject subject = workDay.workSubjects().get(workTimeForRow(sheet, row - 1)); // На предыдущей строке искать пару
+                    // TODO: Fix subject is null. (3 курс ФЭЭ ЭО - 23)
+                    // Tip: если есть преподаватель, значит предмет
                     subject.getOddSubject().info().add(new SubjectInfo(studSubject.title(), SubjectInfo.Type.CLASSES));
                     subject.getOddSubject().info().add(new SubjectInfo(workTimeKey, SubjectInfo.Type.ANOTHER_TIME));
                     workSubject.setOddSubject(StudSubject.EMPTY);
@@ -193,7 +196,7 @@ public class RaspParser {
                 workSubject.getDenominatorSubject().info().add(new SubjectInfo(studSubject.title(), SubjectInfo.Type.AUDIENCE)); // Аудитория по знаменателю
             }
         } else if (workSubject.getEvenSubject() == null) { // если чётная неделя |0|1|
-            if (containClassesInfo(studSubject)) {
+            if (containClassesInfo(studSubject) && !containsSubject(studSubject)) {
                 WorkSubject subject = workDay.workSubjects().get(workTimeForRow(sheet, row - 1)); // На предыдущей строке искать пару
                 subject.getEvenSubject().info().add(new SubjectInfo(studSubject.title(), SubjectInfo.Type.CLASSES));
                 subject.getEvenSubject().info().add(new SubjectInfo(workTimeKey, SubjectInfo.Type.ANOTHER_TIME));
@@ -206,7 +209,11 @@ public class RaspParser {
     }
 
     private boolean containClassesInfo(StudSubject studSubject) {
-        return classesInfoPattern.matcher(studSubject.title()).find();
+        return CLASSES_INFO_PATTERN.matcher(studSubject.title()).find();
+    }
+
+    private boolean containsSubject(StudSubject studSubject) {
+        return SUBJECT_FACTOR.matcher(studSubject.title()).find();
     }
 
     private String workTimeForRow(Sheet sheet, int row) {
