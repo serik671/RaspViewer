@@ -21,7 +21,7 @@ public interface Subject {
 
     public List<String> getTeachers();
 
-    public String getSubgroup();
+    public List<? extends Subgroup> getSubgroups();
 
     public boolean isNumerator();
 
@@ -30,5 +30,12 @@ public interface Subject {
     public boolean isEven();
 
     public boolean isOdd();
+
+    public static interface Subgroup {
+
+        String getName();
+
+        List<Integer> getWeeks();
+    }
 
 }

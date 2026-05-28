@@ -18,10 +18,27 @@ public class StudSubject implements Subject, Comparable<StudSubject> {
     private final String audience;
     private final List<Integer> weeks;
     private final List<String> teachers;
-    private final String subgroup;
+    private final List<Subject.Subgroup> subgroups;
 
     public static enum Type {
         NUMERATOR, DENOMINATOR, EVEN, ODD
+    }
+
+    @Data
+    public static class StudSubgroup implements Subject.Subgroup {
+
+        private String name;
+        private List<Integer> weeks;
+
+        private StudSubgroup(String name, List<Integer> weeks) {
+            this.name = name;
+            this.weeks = weeks;
+        }
+
+        public static Subgroup of(String name, List<Integer> weeks) {
+            return new StudSubgroup(name, weeks);
+        }
+
     }
 
     @Override
@@ -34,7 +51,7 @@ public class StudSubject implements Subject, Comparable<StudSubject> {
     }
 
     public StudSubject withTimeString(String timeString) {
-        return new StudSubject(title, day, timeString, type, audience, weeks, teachers, subgroup);
+        return new StudSubject(title, day, timeString, type, audience, weeks, teachers, subgroups);
     }
 
     @Override

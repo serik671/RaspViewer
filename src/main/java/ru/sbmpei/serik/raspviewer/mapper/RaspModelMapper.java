@@ -2,10 +2,11 @@ package ru.sbmpei.serik.raspviewer.mapper;
 
 import java.time.DayOfWeek;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -16,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import ru.sbmpei.serik.raspviewer.model.Group;
 import ru.sbmpei.serik.raspviewer.model.StudGroup;
 import ru.sbmpei.serik.raspviewer.model.StudSubject;
+import ru.sbmpei.serik.raspviewer.model.Subject;
 import ru.sbmpei.serik.raspviewer.parser.model.StudSubject.SubjectInfo;
 
 /**
@@ -31,9 +33,12 @@ public class RaspModelMapper {
     private static final String WEEK_DELIMITER = Pattern.quote(",");
     private static final Pattern WEEK_NUMBERS_PATTERN = Pattern.compile("(?<" + WEEK_GROUP_NAME + ">(\\d+" + WEEK_DELIMITER + ")*\\d+)\\sн\\.");
 
-    private static final Pattern AUDIENCE_PATTERN = Pattern.compile("[A-Я]\\s\\d{1,3}|\\d{3}");
+    private static final Pattern AUDIENCE_PATTERN = Pattern.compile("\\d{1,3}$|[A-Я]\\s\\d{1,3}$|[A-я]+$");
     private static final Pattern SUBGROUP_PATTERN = Pattern.compile("\\d+\\sпгр.");
-    private static final Pattern TEACHERS_PATTERN = Pattern.compile("([a-я]+\\.)+\\s[A-я]+\\s[A-Я]\\.[A-Я]\\.");
+    private static final Pattern PEDANTIC_TEACHER_PATTERN = Pattern.compile("([a-я]+\\.)+\\s[A-я]+\\s[A-Я]\\.[A-Я]\\.");
+    private static final Pattern TEACHER_PATTERN = Pattern.compile("([a-я]+\\.)+\\s[A-Я].+\\s[A-Я]\\.[A-Я]\\.");
+
+    private static final Pattern SUBGROUP_WEEKS_PATTERN = Pattern.compile(SUBGROUP_PATTERN.pattern() + "\\s" + WEEK_NUMBERS_PATTERN.pattern());
 
     public static List<Group> transformRaspModel(Map<String, ru.sbmpei.serik.raspviewer.parser.model.StudGroup> raspModel) {
         List<Group> groups = new ArrayList<>();
@@ -73,7 +78,7 @@ public class RaspModelMapper {
 
     private static void addStudSubjectToGroup(StudGroup studGroup, ru.sbmpei.serik.raspviewer.parser.model.StudSubject studSubject, String timeKey, DayOfWeek dayKey, StudSubject.Type type) {
         String audience = StringUtils.firstNonBlank(
-                audienceFromValue(studSubject.title()),
+                audienceFromValue(studSubject.title().strip()),
                 audienceFromSubjectInfo(studSubject.info())
         );
 
@@ -81,12 +86,16 @@ public class RaspModelMapper {
                 weeksFromValue(studSubject.title()),
                 weeksFromSubjectInfo(studSubject.info())
         );
+        List<Subject.Subgroup> subgroups = ListUtils.union(
+                subgroupsFromValue(studSubject.title()),
+                subgroupsFromSubjectInfo(studSubject.info())
+        );
 
-        StudSubject subject = new StudSubject(clearSubjectTitle(studSubject.title()),
+        StudSubject subject = new StudSubject(subjectName(studSubject.title()),
                 dayKey, timeKey, type, audience,
                 weeks,
                 teachersFromSubjectTitle(studSubject.title()),
-                subgroupFromSubjectInfo(studSubject.info())
+                subgroups
         );
         studSubject.info().stream()
                 .filter(info -> info.type() == SubjectInfo.Type.ANOTHER_TIME)
@@ -102,7 +111,7 @@ public class RaspModelMapper {
 
         if (subjectInfoOptional.isPresent()) {
             String value = subjectInfoOptional.get().value();
-            weeksFromValue(value);
+            return weeksFromValue(value);
         }
 
         return List.of();
@@ -110,33 +119,40 @@ public class RaspModelMapper {
 
     private static List<Integer> weeksFromValue(String value) {
         Matcher matcher = WEEK_NUMBERS_PATTERN.matcher(value);
-        if (matcher.find()) {
+        List<Integer> weeksList = new ArrayList();
+        while (matcher.find()) {
             String weeks = matcher.group(WEEK_GROUP_NAME);
-            return Stream.of(weeks.split(WEEK_DELIMITER))
+            List<Integer> collectedWeeks = Stream.of(weeks.split(WEEK_DELIMITER))
                     .map(Integer::parseInt)
                     .collect(Collectors.toList());
+            weeksList.addAll(collectedWeeks);
         }
-        return List.of();
+        return Collections.unmodifiableList(weeksList);
     }
 
     private static List<String> teachersFromSubjectTitle(String title) {
-        return TEACHERS_PATTERN.matcher(title).results()
+        return TEACHER_PATTERN.matcher(title).results()
                 .map(MatchResult::group)
+                .map(RaspModelMapper::pedanticTeacherCheck)
                 .collect(Collectors.toList());
     }
 
-    private static String clearSubjectTitle(String title) {
-        return cutFromText(title, TEACHERS_PATTERN,
-                r1 -> cutFromText(r1, AUDIENCE_PATTERN,
-                        r2 -> cutFromText(r2, WEEK_NUMBERS_PATTERN,
-                                String::strip
-                        )
-                )
-        );
+    private static String pedanticTeacherCheck(String teacher) {
+        if (!PEDANTIC_TEACHER_PATTERN.matcher(teacher).find()) {
+            String otherTeacher = IO.readln("!Возможно! преподаватель (" + teacher + ") указан некорректно."
+                    + "\nВведите преподавателя корректно, или нажмите Enter: ");
+            return StringUtils.isBlank(otherTeacher) ? teacher : otherTeacher;
+        }
+        return teacher;
     }
 
-    private static String cutFromText(String text, Pattern p, Function<String, String> action) {
-        return action.apply(p.matcher(text).replaceAll(StringUtils.EMPTY));
+    private static String subjectName(String title) {
+        Matcher matcher = TEACHER_PATTERN.matcher(title);
+        if (matcher.find()) {
+            return title.substring(0, matcher.start() - 1).strip();
+        } else {
+            throw new IllegalArgumentException("Don't find teacher in subject title: " + title);
+        }
     }
 
     private static String audienceFromSubjectInfo(List<SubjectInfo> info) {
@@ -146,19 +162,9 @@ public class RaspModelMapper {
                     return subjectInfo.value();
                 }
                 case SubjectInfo.Type.CLASSES -> {
-                    return audienceFromValue(subjectInfo.value());
-                }
-            }
-        }
-        return null;
-    }
-
-    private static String subgroupFromSubjectInfo(List<SubjectInfo> info) {
-        for (SubjectInfo subjectInfo : info) {
-            if (subjectInfo.type() == SubjectInfo.Type.CLASSES) {
-                Matcher matcher = SUBGROUP_PATTERN.matcher(subjectInfo.value());
-                if (matcher.find()) {
-                    return matcher.group();
+                    String infoValue = subjectInfo.value().strip();
+                    return Objects.requireNonNull(audienceFromValue(infoValue),
+                            "Don't find audience for value: " + infoValue);
                 }
             }
         }
@@ -167,7 +173,43 @@ public class RaspModelMapper {
 
     private static String audienceFromValue(String value) {
         Matcher matcher = AUDIENCE_PATTERN.matcher(value);
-        return matcher.find() ? matcher.group() : null;
+        if (matcher.find()) {
+            return matcher.group();
+        }
+
+        return null;
+    }
+
+    private static List<Subject.Subgroup> subgroupsFromSubjectInfo(List<SubjectInfo> info) {
+        for (SubjectInfo subjectInfo : info) {
+            if (subjectInfo.type() == SubjectInfo.Type.CLASSES) {
+                return subgroupsFromValue(subjectInfo.value());
+            }
+        }
+        return List.of();
+    }
+
+    private static List<Subject.Subgroup> subgroupsFromValue(String value) {
+        Matcher matcher = SUBGROUP_WEEKS_PATTERN.matcher(value);
+        List<Subject.Subgroup> subgroups = new ArrayList();
+        while (matcher.find()) {
+            String subgroupWeeksValue = matcher.group();
+            String subgroupName = Objects.requireNonNull(subgroupFromValue(subgroupWeeksValue),
+                    "Don't find subgroup for value: " + value
+                    + ". Subgroup weeks value is " + subgroupWeeksValue);
+
+            List<Integer> weeksFromValue = weeksFromValue(subgroupWeeksValue);
+            subgroups.add(StudSubject.StudSubgroup.of(subgroupName, weeksFromValue));
+        }
+        return Collections.unmodifiableList(subgroups);
+    }
+
+    private static String subgroupFromValue(String value) {
+        Matcher matcher = SUBGROUP_PATTERN.matcher(value);
+        if (matcher.find()) {
+            return matcher.group();
+        }
+        return null;
     }
 
 }

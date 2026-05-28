@@ -38,7 +38,7 @@ public class RaspParser {
     private final CellRangeAddress EMPTY_ADDRESS = CellRangeAddress.valueOf("A1:A1");
 
     private final Pattern CLASSES_INFO_PATTERN = Pattern.compile("\\d\\sи\\s\\d\\sпара");
-    private final Pattern SUBJECT_FACTOR = Pattern.compile("([a-я]+\\.)+\\s[A-я]+\\s[A-Я]\\.[A-Я]\\.");
+    private final Pattern SUBJECT_FACTOR = Pattern.compile("([a-я]+\\.)+\\s[A-Я].+\\s[A-Я]\\.[A-Я]\\.");
 
     public static Map<String, DayOfWeek> dayOfWeek = Collections.unmodifiableMap(
             Map.of(
@@ -245,11 +245,23 @@ public class RaspParser {
                     .replaceAll("и", "")
                     .replaceAll("пара", "")
                     .split("\\s");
-            return Stream.of(classes)
+            int[] classesArray = Stream.of(classes)
                     .filter(StringUtils::isNoneBlank)
                     .mapToInt(Integer::parseInt)
                     .filter(it -> it != currentClass)
-                    .findFirst().getAsInt();
+                    .toArray();
+            if (classesArray.length <= 0) {
+                throw new IllegalArgumentException("Bad classes info in title: " + matcher.group());
+            }
+            if (classesArray.length > 1) {
+                IO.println("Значение ячейки: '" + studSubject.title() + "'");
+                IO.println("Текущая и указанные пары не совпадают.");
+                IO.println("Текущая для этой строки пара: " + currentClass + ". Указано: " + matcher.group());
+                String number = IO.readln("Вместо (" + matcher.group() + "), указать " + currentClass + " и (цифра): ");
+                return Integer.parseInt(number);
+            } else {
+                return classesArray[0];
+            }
         } else {
             throw new IllegalArgumentException();
         }

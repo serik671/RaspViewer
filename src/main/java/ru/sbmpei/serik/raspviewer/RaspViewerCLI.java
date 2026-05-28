@@ -80,7 +80,7 @@ public class RaspViewerCLI implements Runnable {
 
     private void showDay() {
         try {
-            LocalDate date = LocalDate.parse(IO.readln("Date: "));
+            LocalDate date = LocalDate.parse(IO.readln("Date (yyyy-MM-dd): "));
             IO.println(date.getDayOfWeek() + " " + service.currentWeek(date) + " week");
             service.subjectsOfGroupForDays(List.of(date), currentGroup)
                     .forEach(subject -> {
@@ -88,9 +88,9 @@ public class RaspViewerCLI implements Runnable {
                         if (!subject.getTeachers().isEmpty()) {
                             IO.print("|" + subject.getTeachers());
                         }
-                        if (StringUtils.isNotBlank(subject.getSubgroup())) {
-                            IO.print("|" + "!!! " + subject.getSubgroup() + " !!!");
-                        }
+                        subject.getSubgroups().forEach(sg -> {
+                            IO.print("|" + sg.getName() + ": " + sg.getWeeks());
+                        });
                         IO.println();
                     });
         } catch (Exception e) {
