@@ -11,6 +11,8 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -30,6 +32,8 @@ import ru.sbmpei.serik.raspviewer.parser.model.WorkSubject;
  * @author SLakeev
  */
 public class RaspParser {
+
+    private static final Logger LOGGER = LogManager.getLogger();
 
     private final int GROUP_NAME_ROW = 1;
     private final int DAY_OF_WEEK_COLUMN = 0;
@@ -59,19 +63,21 @@ public class RaspParser {
     }
 
     public Map<String, StudGroup> parse() {
+        LOGGER.debug("Begin parse file: {}", fileName);
         try (Workbook rasp = new HSSFWorkbook(new FileInputStream(fileName))) {
             IntStream.range(0, rasp.getNumberOfSheets())
-                    //                    .limit(2) // TODO: remove limit for production
                     .mapToObj(rasp::getSheetAt).forEach(this::parseSheet);
         } catch (Exception e) {
             e.printStackTrace(System.out);
-            IO.println("Система завершила работу: Неудалось обработать файл");
+            LOGGER.fatal("Система завершила работу: Неудалось обработать файл");
             System.exit(0);
         }
         return studGroups;
     }
 
     private void parseSheet(Sheet sheet) {
+        LOGGER.debug("Begin parse sheet: {}", sheet.getSheetName());
+
         int rowIndex = GROUP_NAME_ROW + 1;
         for (int i = rowIndex;; i++) {
             Row row = sheet.getRow(i);
@@ -85,6 +91,8 @@ public class RaspParser {
                 }
 
                 CellRangeAddress region = mergedRegion(sheet, cell.getAddress());
+                LOGGER.debug("Current cell ({}, {})", i, j);
+                LOGGER.debug("Region: {}", region);
 
                 if (cellAddressEquals(region, EMPTY_ADDRESS)) {
                     fillStudSubject(sheet, cellValue(cell), cell, 1);
@@ -132,9 +140,11 @@ public class RaspParser {
         int cell = c.getColumnIndex();
         int row = c.getRowIndex();
 
+        LOGGER.debug("Cell value is '{}'", value);
+
         String groupName = groupNameForColumn(sheet, cell);
         if (StringUtils.isBlank(groupName)) {
-            // TODO: add log - for cell don't found group name
+            LOGGER.trace("Group name is blank for column: {}", cell);
             return;
         }
         StudGroup group = studGroups.get(groupName);
@@ -145,7 +155,7 @@ public class RaspParser {
 
         DayOfWeek day = workDayForRow(sheet, row);
         if (day == null) {
-            // TODO: add log - for cell don't found day of week
+            LOGGER.trace("Not found day of week for row: {}", row);
             return;
         }
         WorkDay workDay = group.days().get(day);
@@ -156,10 +166,10 @@ public class RaspParser {
 
         String workTimeKey = workTimeForRow(sheet, row);
         if (StringUtils.isBlank(workTimeKey)) {
-            // TODO: add log - for cell don't found time range
+            LOGGER.trace("Work time is blank for row: {}", row);
             return;
         }
-        // TODO: check time range
+
         WorkSubject workSubject = workDay.workSubjects().get(workTimeKey);
         if (workSubject == null) {
             workSubject = new WorkSubject();
@@ -167,6 +177,11 @@ public class RaspParser {
         }
 
         CellRangeAddress groupRange = groupRangeForColumn(sheet, cell);
+
+        LOGGER.debug("Group cell range is {}", groupRange);
+
+        LOGGER.debug("Group: '{}', DayOfWeek: '{}', Time: '{}', Value: '{}'",
+                groupName, day, workTimeKey, value);
 
         StudSubject studSubject = StringUtils.isBlank(value)
                 ? StudSubject.EMPTY : new StudSubject(value, new ArrayList<>());
