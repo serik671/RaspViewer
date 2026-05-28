@@ -6,8 +6,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
@@ -177,13 +179,22 @@ public class RaspParser {
                     workSubject.setDenominatorSubject(studSubject);
                 }
             } else if (workSubject.getOddSubject() == null) { // нечётная неделя
-                if (containClassesInfo(studSubject) && !containsSubject(studSubject)) {
-                    WorkSubject subject = workDay.workSubjects().get(workTimeForRow(sheet, row - 1)); // На предыдущей строке искать пару
-                    // TODO: Fix subject is null. (3 курс ФЭЭ ЭО - 23)
-                    // Tip: если есть преподаватель, значит предмет
-                    subject.getOddSubject().info().add(new SubjectInfo(studSubject.title(), SubjectInfo.Type.CLASSES));
-                    subject.getOddSubject().info().add(new SubjectInfo(workTimeKey, SubjectInfo.Type.ANOTHER_TIME));
-                    workSubject.setOddSubject(StudSubject.EMPTY);
+                if (containClassesInfo(studSubject)) {
+                    int currentSubjectNumber = workDay.workSubjects().size();
+                    int anotherClass = anotherClassFromClassesInfo(studSubject, currentSubjectNumber);
+
+                    CellRangeAddress subjectRegion = mergedRegion(sheet, row, cell);
+                    String anotherWorkTime = workTimeForClasses(sheet, currentSubjectNumber, anotherClass, subjectRegion);
+
+                    if (containsSubject(studSubject)) {
+                        studSubject.info().add(new SubjectInfo(anotherWorkTime, SubjectInfo.Type.ANOTHER_TIME));
+                        workSubject.setOddSubject(studSubject);
+                    } else {
+                        WorkSubject subject = workDay.workSubjects().get(anotherWorkTime);
+                        subject.getOddSubject().info().add(new SubjectInfo(studSubject.title(), SubjectInfo.Type.CLASSES));
+                        subject.getOddSubject().info().add(new SubjectInfo(workTimeKey, SubjectInfo.Type.ANOTHER_TIME));
+                        workSubject.setOddSubject(StudSubject.EMPTY);
+                    }
                 } else {
                     workSubject.setOddSubject(studSubject);
                 }
@@ -196,11 +207,22 @@ public class RaspParser {
                 workSubject.getDenominatorSubject().info().add(new SubjectInfo(studSubject.title(), SubjectInfo.Type.AUDIENCE)); // Аудитория по знаменателю
             }
         } else if (workSubject.getEvenSubject() == null) { // если чётная неделя |0|1|
-            if (containClassesInfo(studSubject) && !containsSubject(studSubject)) {
-                WorkSubject subject = workDay.workSubjects().get(workTimeForRow(sheet, row - 1)); // На предыдущей строке искать пару
-                subject.getEvenSubject().info().add(new SubjectInfo(studSubject.title(), SubjectInfo.Type.CLASSES));
-                subject.getEvenSubject().info().add(new SubjectInfo(workTimeKey, SubjectInfo.Type.ANOTHER_TIME));
-                workSubject.setEvenSubject(StudSubject.EMPTY);
+            if (containClassesInfo(studSubject)) {
+                int currentSubjectNumber = workDay.workSubjects().size();
+                int anotherClass = anotherClassFromClassesInfo(studSubject, currentSubjectNumber);
+
+                CellRangeAddress subjectRegion = mergedRegion(sheet, row, cell);
+                String anotherWorkTime = workTimeForClasses(sheet, currentSubjectNumber, anotherClass, subjectRegion);
+
+                if (containsSubject(studSubject)) {
+                    studSubject.info().add(new SubjectInfo(anotherWorkTime, SubjectInfo.Type.ANOTHER_TIME));
+                    workSubject.setEvenSubject(studSubject);
+                } else {
+                    WorkSubject subject = workDay.workSubjects().get(workTimeForRow(sheet, row - 1)); // На предыдущей строке искать пару
+                    subject.getEvenSubject().info().add(new SubjectInfo(studSubject.title(), SubjectInfo.Type.CLASSES));
+                    subject.getEvenSubject().info().add(new SubjectInfo(workTimeKey, SubjectInfo.Type.ANOTHER_TIME));
+                    workSubject.setEvenSubject(StudSubject.EMPTY);
+                }
             } else {
                 workSubject.setEvenSubject(studSubject);
             }
@@ -216,6 +238,23 @@ public class RaspParser {
         return SUBJECT_FACTOR.matcher(studSubject.title()).find();
     }
 
+    private int anotherClassFromClassesInfo(StudSubject studSubject, int currentClass) {
+        Matcher matcher = CLASSES_INFO_PATTERN.matcher(studSubject.title());
+        if (matcher.find()) {
+            String[] classes = matcher.group()
+                    .replaceAll("и", "")
+                    .replaceAll("пара", "")
+                    .split("\\s");
+            return Stream.of(classes)
+                    .filter(StringUtils::isNoneBlank)
+                    .mapToInt(Integer::parseInt)
+                    .filter(it -> it != currentClass)
+                    .findFirst().getAsInt();
+        } else {
+            throw new IllegalArgumentException();
+        }
+    }
+
     private String workTimeForRow(Sheet sheet, int row) {
         CellRangeAddress workTimeRegion = mergedRegion(sheet, row, WORK_TIME_COLUMN);
         if (workTimeRegion == EMPTY_ADDRESS) {
@@ -223,6 +262,12 @@ public class RaspParser {
         }
         Cell workTime = firstCellFromRegion(sheet, workTimeRegion);
         return cellValue(workTime);
+    }
+
+    private String workTimeForClasses(Sheet sheet, int current, int another, CellRangeAddress subjectRegion) {
+        return (current < another)
+                ? workTimeForRow(sheet, subjectRegion.getLastRow() + 1)
+                : workTimeForRow(sheet, subjectRegion.getFirstRow() - 1);
     }
 
     private DayOfWeek workDayForRow(Sheet sheet, int row) {
