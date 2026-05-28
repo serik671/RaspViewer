@@ -36,7 +36,7 @@ public class RaspModelMapper {
     private static final Pattern AUDIENCE_PATTERN = Pattern.compile("\\d{1,3}$|[A-Я]\\s\\d{1,3}$|[A-я]+$");
     private static final Pattern SUBGROUP_PATTERN = Pattern.compile("\\d+\\sпгр.");
     private static final Pattern PEDANTIC_TEACHER_PATTERN = Pattern.compile("([a-я]+\\.)+\\s[A-я]+\\s[A-Я]\\.[A-Я]\\.");
-    private static final Pattern TEACHER_PATTERN = Pattern.compile("([a-я]+\\.)+\\s[A-Я].+\\s[A-Я]\\.[A-Я]\\.");
+    private static final Pattern TEACHER_PATTERN = Pattern.compile("([a-я]+\\.)+\\s[A-Я].+?\\s[A-Я]\\.[A-Я]\\.");
 
     private static final Pattern SUBGROUP_WEEKS_PATTERN = Pattern.compile(SUBGROUP_PATTERN.pattern() + "\\s" + WEEK_NUMBERS_PATTERN.pattern());
 
