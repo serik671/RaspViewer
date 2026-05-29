@@ -1,0 +1,9 @@
+.*
+*.xml
+*.xls
+
+target/*
+logs/*
+
+!pom.xml
+!.gitignore
