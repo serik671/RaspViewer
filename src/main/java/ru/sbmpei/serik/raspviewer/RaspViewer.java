@@ -52,6 +52,7 @@ public class RaspViewer {
     }
 
     private static void init(String[] args) throws DateTimeParseException {
+        LOGGER.info("Инициализация программы...");
         if (args.length > 0) {
             fileName = args[0];
             if (args.length > 1) {
@@ -63,6 +64,7 @@ public class RaspViewer {
             fileName = IO.readln("Укажие файл расписания: ");
             beginDate = LocalDate.parse(IO.readln("Введите дату начала семестра(ГГГГ-ММ-ДД): "));
         }
+        LOGGER.info("Программа инициализирована");
     }
 
 }
