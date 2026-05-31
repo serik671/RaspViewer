@@ -62,15 +62,14 @@ public class RaspParser {
         this.fileName = fileName;
     }
 
-    public Map<String, StudGroup> parse() {
+    public Map<String, StudGroup> parse() throws Exception{
         LOGGER.debug("Begin parse file: {}", fileName);
         try (Workbook rasp = new HSSFWorkbook(new FileInputStream(fileName))) {
             IntStream.range(0, rasp.getNumberOfSheets())
                     .mapToObj(rasp::getSheetAt).forEach(this::parseSheet);
         } catch (Exception e) {
-            e.printStackTrace(System.out);
-            LOGGER.fatal("Система завершила работу: Неудалось обработать файл");
-            System.exit(0);
+            LOGGER.warn("Неудалось обработать файл ({})", fileName);
+            throw e;
         }
         return studGroups;
     }

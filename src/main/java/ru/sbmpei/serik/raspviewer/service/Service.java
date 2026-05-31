@@ -16,4 +16,6 @@ public interface Service {
     public List<Subject> subjectsOfGroupForDays(List<LocalDate> days, String groupName);
 
     public int currentWeek(LocalDate date);
+
+    public void parseGroupFromFile(String fileName);
 }

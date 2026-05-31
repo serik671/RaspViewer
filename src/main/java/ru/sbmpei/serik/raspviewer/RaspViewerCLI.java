@@ -19,7 +19,12 @@ public class RaspViewerCLI implements Runnable {
     private final String SELECT_CMD = "select";
     private final String SHOW_CMD = "show";
 
+    private final String ADD_GROUP_CMD = "add";
+    private final String WEEK_CMD = "week";
+
     private final Service service;
+
+    private boolean quit;
 
     public RaspViewerCLI(Service service) {
         this.service = service;
@@ -29,38 +34,48 @@ public class RaspViewerCLI implements Runnable {
 
     @Override
     public void run() {
-        while (true) {
+        while (!quit) {
             String prompt = StringUtils.isBlank(currentGroup) ? "RaspViewer_> " : "RaspViewer_" + currentGroup + "_> ";
             String cmd = IO.readln(prompt);
-            if (QUIT_CMD.equals(cmd)) {
-                break;
+            switch (cmd) {
+                case QUIT_CMD -> {
+                    quit = true;
+                }
+                case HELP_CMD -> {
+                    showMenu();
+                }
+                case GROUPS_CMD -> {
+                    showGroups();
+                }
+                case SELECT_CMD -> {
+                    String groupName = IO.readln("Group name: ");
+                    selectGroup(groupName);
+                }
+                case SHOW_CMD -> {
+                    showDay();
+                }
+                case ADD_GROUP_CMD -> {
+                    addGroups();
+                }
+                case WEEK_CMD -> {
+                    showCurrentWeek();
+                }
+                default -> {
+                    IO.println("Not correct command");
+                }
             }
-            if (HELP_CMD.equals(cmd)) {
-                showMenu();
-                continue;
-            }
-            if (GROUPS_CMD.equals(cmd)) {
-                showGroups();
-                continue;
-            }
-            if (SELECT_CMD.equals(cmd)) {
-                String groupName = IO.readln("Group name: ");
-                selectGroup(groupName);
-                continue;
-            }
-            if (SHOW_CMD.equals(cmd)) {
-                showDay();
-                continue;
-            }
-            IO.println("Not correct command");
+
         }
 
     }
 
     private void showMenu() {
         IO.println(GROUPS_CMD + " - Show groups list");
-        IO.println(SELECT_CMD + " (group name) - select group");
-        IO.println(SHOW_CMD + "[date(yyyy-MM-dd)] - Show stud day for date");
+        IO.println(SELECT_CMD + " - Select group");
+        IO.println(SHOW_CMD + " - Show stud day for date");
+        IO.println(ADD_GROUP_CMD + " - Add a new groups from the files");
+        IO.println(WEEK_CMD + " - Show the week for a current time");
+        IO.println(QUIT_CMD + " - Quit");
     }
 
     private void showGroups() {
@@ -96,6 +111,15 @@ public class RaspViewerCLI implements Runnable {
         } catch (Exception e) {
             IO.println(e.getMessage());
         }
+    }
+
+    private void addGroups() {
+        String input = IO.readln("File name(s): ");
+        List.of(input.split(StringUtils.SPACE)).forEach(service::parseGroupFromFile);
+    }
+
+    private void showCurrentWeek() {
+        System.out.printf("Идёт %d неделя\n", service.currentWeek(LocalDate.now()));
     }
 
 }
