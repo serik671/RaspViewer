@@ -14,6 +14,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.sbmpei.serik.raspviewer.model.Group;
 import ru.sbmpei.serik.raspviewer.model.StudGroup;
 import ru.sbmpei.serik.raspviewer.model.StudSubject;
@@ -26,6 +28,8 @@ import ru.sbmpei.serik.raspviewer.parser.model.StudSubject.SubjectInfo;
  */
 public class RaspModelMapper {
 
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private static final String COURSE_GROUP_NAME = "courseNumber";
     private static final Pattern COURSE_NUMBER_PATTERN = Pattern.compile("(?<" + COURSE_GROUP_NAME + ">\\d+)\\sкурс");
 
@@ -36,7 +40,7 @@ public class RaspModelMapper {
     private static final Pattern AUDIENCE_PATTERN = Pattern.compile("\\d{1,3}$|[A-Я]\\s\\d{1,3}$|[A-я]+$");
     private static final Pattern SUBGROUP_PATTERN = Pattern.compile("\\d+\\sпгр.");
     private static final Pattern PEDANTIC_TEACHER_PATTERN = Pattern.compile("([a-я]+\\.)+\\s[A-я]+\\s[A-Я]\\.[A-Я]\\.");
-    private static final Pattern TEACHER_PATTERN = Pattern.compile("([a-я]+\\.)+\\s[A-Я].+?\\s[A-Я]\\.[A-Я]\\.");
+    private static final Pattern TEACHER_PATTERN = Pattern.compile("([a-я]+\\.)+\\s[A-Я].{1,20}\\s[A-Я]\\.[A-Я]\\.");
 
     private static final Pattern SUBGROUP_WEEKS_PATTERN = Pattern.compile(SUBGROUP_PATTERN.pattern() + "\\s" + WEEK_NUMBERS_PATTERN.pattern());
 
@@ -138,10 +142,14 @@ public class RaspModelMapper {
     }
 
     private static String pedanticTeacherCheck(String teacher) {
-        if (!PEDANTIC_TEACHER_PATTERN.matcher(teacher).find()) {
+        Matcher matcher = PEDANTIC_TEACHER_PATTERN.matcher(teacher);
+        if (!matcher.find()) {
             String otherTeacher = IO.readln("!Возможно! преподаватель (" + teacher + ") указан некорректно."
                     + "\nВведите преподавателя корректно, или нажмите Enter: ");
             return StringUtils.isBlank(otherTeacher) ? teacher : otherTeacher;
+        }
+        if (!Objects.equals(matcher.group(), teacher)) {
+            LOGGER.warn("The teacher '{}' parsed not correct", teacher);
         }
         return teacher;
     }

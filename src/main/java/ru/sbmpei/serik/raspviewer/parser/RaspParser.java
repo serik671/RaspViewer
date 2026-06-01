@@ -42,7 +42,7 @@ public class RaspParser {
     private final CellRangeAddress EMPTY_ADDRESS = CellRangeAddress.valueOf("A1:A1");
 
     private final Pattern CLASSES_INFO_PATTERN = Pattern.compile("\\d\\sи\\s\\d\\sпара");
-    private final Pattern SUBJECT_FACTOR = Pattern.compile("([a-я]+\\.)+\\s[A-Я].+\\s[A-Я]\\.[A-Я]\\.");
+    private final Pattern SUBJECT_FACTOR = Pattern.compile("([a-я]+\\.)+\\s[A-Я].{1,20}\\s[A-Я]\\.[A-Я]\\.");
 
     public static Map<String, DayOfWeek> dayOfWeek = Collections.unmodifiableMap(
             Map.of(
@@ -62,7 +62,7 @@ public class RaspParser {
         this.fileName = fileName;
     }
 
-    public Map<String, StudGroup> parse() throws Exception{
+    public Map<String, StudGroup> parse() throws Exception {
         LOGGER.debug("Begin parse file: {}", fileName);
         try (Workbook rasp = new HSSFWorkbook(new FileInputStream(fileName))) {
             IntStream.range(0, rasp.getNumberOfSheets())
