@@ -32,6 +32,26 @@
             <version>1.18.46</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>gg.jte</groupId>
+            <artifactId>jte</artifactId>
+            <version>3.2.4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.javalin</groupId>
+            <artifactId>javalin</artifactId>
+            <version>${javalin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.javalin</groupId>
+            <artifactId>javalin-rendering-jte</artifactId>
+            <version>${javalin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j2-impl</artifactId>
+            <version>2.26.0</version>
+        </dependency>
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -39,6 +59,7 @@
         <exec.mainClass>ru.sbmpei.serik.raspviewer.RaspViewer</exec.mainClass>
         
         <poi.version>5.5.1</poi.version>
+        <javalin.version>7.2.2</javalin.version>
     </properties>
     <build>
 	<plugins>

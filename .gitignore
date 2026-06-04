@@ -5,5 +5,7 @@
 target/*
 logs/*
 
+jte-classes/
+
 !pom.xml
 !.gitignore

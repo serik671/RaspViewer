@@ -4,9 +4,9 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,18 +34,21 @@ public class RaspService implements Service {
     }
 
     @Override
-    public List<? extends Group> groupList() {
+    public List<Group> groupList() {
         return groups;
     }
 
     @Override
-    public List<Subject> subjectsOfGroupForDays(List<LocalDate> days, String groupName) {
-        return days.stream().map(day -> subjectsForOneDay(day, groupName))
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+    public List<Subject> subjectsOfGroupForDay(LocalDate day, String groupName) {
+        return subjectsOfGroupForDay(day, groupName, null);
     }
 
-    private List<Subject> subjectsForOneDay(LocalDate date, String groupName) {
+    @Override
+    public List<Subject> subjectsOfGroupForDay(LocalDate day, String groupName, String subgroupName) {
+        return subjectsForOneDay(day, groupName, subgroupName);
+    }
+
+    private List<Subject> subjectsForOneDay(LocalDate date, String groupName, String subgroupName) {
         DayOfWeek day = date.getDayOfWeek();
         Group group = groups.stream().filter(it -> it.getName().equals(groupName)).findFirst().get();
         int week = currentWeek(date);
@@ -53,6 +56,7 @@ public class RaspService implements Service {
                 .filter(it -> it.getDay() == day)
                 .filter(it -> weekTypeFilter(it, week))
                 .filter(it -> containsWeek(it, week))
+                .filter(it -> containsSubgroup(it, subgroupName, week))
                 .collect(Collectors.toList());
     }
 
@@ -65,6 +69,34 @@ public class RaspService implements Service {
     private boolean containsWeek(Subject s, int week) {
         List<Integer> weeks = s.getWeeks();
         return weeks.isEmpty() ? true : weeks.contains(week);
+    }
+
+    private boolean containsSubgroup(Subject s, String subgroup, int week) {
+        if (subgroup == null || subgroup.isBlank()) {
+            return true;
+        }
+        if (s.getSubgroups().isEmpty()) {
+            return true;
+        }
+        boolean anyMatch = s.getSubgroups().stream()
+                .anyMatch(it -> it.getName().equals(subgroup));
+
+        if (!anyMatch) {
+            return false;
+        }
+
+        List<Integer> weeks = s.getSubgroups().stream()
+                .filter(it -> it.getName().equals(subgroup))
+                .map(it -> it.getWeeks())
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
+
+        if (weeks.isEmpty()) {
+            return true;
+        }
+
+        return weeks.contains(week);
+
     }
 
     @Override
@@ -116,6 +148,27 @@ public class RaspService implements Service {
         String resp = IO.readln("Обнаружено совпадение имён групп: " + groups
                 + "\nПерезаписать на новые группы? (y/N): ");
         return YES.equals(resp.toLowerCase());
+    }
+
+    @Override
+    public List<String> subgroupList(String groupName) {
+        Optional<Group> groupOpt = groups.stream().filter(group -> group.getName()
+                .equals(groupName))
+                .findFirst();
+        if (groupOpt.isPresent()) {
+            return subgroupList(groupOpt.get());
+        }
+        return List.of();
+    }
+
+    private List<String> subgroupList(Group group) {
+        return group.getSubjects().stream()
+                .map(Subject::getSubgroups)
+                .flatMap(List::stream)
+                .map(Subject.Subgroup::getName)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
     }
 
 }

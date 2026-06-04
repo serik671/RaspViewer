@@ -11,11 +11,15 @@ import ru.sbmpei.serik.raspviewer.model.Subject;
  */
 public interface Service {
 
-    public List<? extends Group> groupList();
+    public List<Group> groupList();
 
-    public List<Subject> subjectsOfGroupForDays(List<LocalDate> days, String groupName);
+    public List<Subject> subjectsOfGroupForDay(LocalDate day, String groupName);
+
+    public List<Subject> subjectsOfGroupForDay(LocalDate day, String groupName, String subgroup);
 
     public int currentWeek(LocalDate date);
 
     public void parseGroupFromFile(String fileName);
+
+    public List<String> subgroupList(String groupName);
 }

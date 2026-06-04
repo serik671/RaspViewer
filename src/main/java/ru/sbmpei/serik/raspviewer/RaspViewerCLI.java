@@ -38,6 +38,8 @@ public class RaspViewerCLI implements Runnable {
             String prompt = StringUtils.isBlank(currentGroup) ? "RaspViewer_> " : "RaspViewer_" + currentGroup + "_> ";
             String cmd = IO.readln(prompt);
             switch (cmd) {
+                case StringUtils.EMPTY -> {
+                }
                 case QUIT_CMD -> {
                     quit = true;
                 }
@@ -64,9 +66,8 @@ public class RaspViewerCLI implements Runnable {
                     IO.println("Not correct command");
                 }
             }
-
         }
-
+        System.exit(0);
     }
 
     private void showMenu() {
@@ -97,7 +98,7 @@ public class RaspViewerCLI implements Runnable {
         try {
             LocalDate date = LocalDate.parse(IO.readln("Date (yyyy-MM-dd): "));
             IO.println(date.getDayOfWeek() + " " + service.currentWeek(date) + " week");
-            service.subjectsOfGroupForDays(List.of(date), currentGroup)
+            service.subjectsOfGroupForDay(date, currentGroup)
                     .forEach(subject -> {
                         IO.print(subject.getTimeString() + "|" + subject.getTitle() + "|" + subject.getAudience());
                         if (!subject.getTeachers().isEmpty()) {

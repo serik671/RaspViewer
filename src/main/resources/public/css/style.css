@@ -1,0 +1,64 @@
+html {
+	height: 100%;
+}
+
+
+body {
+	display: flex;
+	flex-direction: column;
+	background: aliceblue;
+	margin: 0;
+        height: 100%;
+}
+
+header {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	margin: 20pt 10%;
+}
+
+main {
+	flex: 1 0 auto;
+}
+
+main div {
+	margin: 10pt 10%;
+}
+
+.btnComposite {
+	margin: 0 0 0 1rem;
+}
+
+.btnComposite button {
+	margin: 0 2rem 0 0;
+}
+
+main .raspContent {
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-start;
+	align-self: center;
+}
+
+main .raspContent table {
+	margin: 2rem 1rem 0 0;
+	border-collapse: collapse;
+	border: 2px solid black;
+	width: 20rem;
+}
+
+td {
+	border: 1px solid rgb(180, 180, 180);
+	padding: 8px 2px;
+}
+th {
+	border: 1px solid rgb(180, 180, 180);
+	padding: 8px 10px;
+}
+
+footer {
+	flex-shrink: 0;
+	align-self: center;
+	margin: 10pt 0;
+}

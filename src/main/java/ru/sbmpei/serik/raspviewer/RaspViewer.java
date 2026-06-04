@@ -1,11 +1,15 @@
 package ru.sbmpei.serik.raspviewer;
 
+import io.javalin.Javalin;
+import io.javalin.http.staticfiles.Location;
+import io.javalin.rendering.template.JavalinJte;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import ru.sbmpei.serik.raspviewer.controller.RaspController;
 import ru.sbmpei.serik.raspviewer.service.RaspService;
 
 /**
@@ -36,7 +40,17 @@ public class RaspViewer {
         RaspService raspService = new RaspService(beginDate);
         fileNames.forEach(raspService::parseGroupFromFile);
         System.out.printf("Идёт %d неделя\n", raspService.currentWeek(LocalDate.now()));
-        new RaspViewerCLI(raspService).run();
+        new Thread(new RaspViewerCLI(raspService)).start();
+
+        RaspController raspCtrl = RaspController.of(raspService);
+
+        Javalin.create(conf -> {
+            conf.fileRenderer(new JavalinJte(JavalinJte.Companion.directoryTemplateEngine()));
+            conf.staticFiles.add("public", Location.CLASSPATH);
+            conf.routes.get("/", raspCtrl::main);
+            conf.routes.post("/subgroup", raspCtrl::subgroup);
+            conf.routes.post("/rasp", raspCtrl::raspContent);
+        }).start(80);
 
     }
 
