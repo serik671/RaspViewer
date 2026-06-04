@@ -49,6 +49,11 @@ public class RaspViewer {
             conf.staticFiles.add("public", Location.CLASSPATH);
             conf.routes.get("/", raspCtrl::main);
             conf.routes.post("/subgroup", raspCtrl::subgroup);
+            conf.routes.post("/raspForToday", raspCtrl::raspContentForToday);
+            conf.routes.post("/raspForTomorrow", raspCtrl::raspContentForTomorrow);
+            conf.routes.post("/raspForThreeDays", raspCtrl::raspContentForThreeDays);
+            conf.routes.post("/raspForCurrentWeek", raspCtrl::raspContentForCurrentWeek);
+            conf.routes.post("/raspForNextWeek", raspCtrl::raspContentForNextWeek);
             conf.routes.post("/rasp", raspCtrl::raspContent);
         }).start(80);
 

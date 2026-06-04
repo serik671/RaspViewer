@@ -36,11 +36,11 @@
             <div>
                 <label>Показать расписание на</label>
                 <span class='btnComposite'>
-                    <button hx-get="/raspForToday" hx-target="#raspContent">Сегодня</button>
-                    <button hx-get="/raspForTomorrow" hx-target="#raspContent">Завтра</button>
-                    <button hx-get="/raspForThreeDays" hx-target="#raspContent">3 Дня</button>
-                    <button hx-get="/raspForCurrentWeek" hx-target="#raspContent">Неделю</button>
-                    <button hx-get="/raspForNextWeek" hx-target="#raspContent">Следующую неделю</button>
+                    <button hx-post="/raspForToday" hx-target="#raspContent">Сегодня</button>
+                    <button hx-post="/raspForTomorrow" hx-target="#raspContent">Завтра</button>
+                    <button hx-post="/raspForThreeDays" hx-target="#raspContent">3 Дня</button>
+                    <button hx-post="/raspForCurrentWeek" hx-target="#raspContent">Неделю</button>
+                    <button hx-post="/raspForNextWeek" hx-target="#raspContent">Следующую неделю</button>
                 </span>
             </div>
             <div>
