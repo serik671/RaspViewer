@@ -99,7 +99,7 @@ public class RaspController {
         String groupName = ctx.formParam(Param.GROUP_NAME);
         String subgroupName = ctx.formParam(Param.SUBGROUP_NAME);
         String fromDate = LocalDate.now().toString();
-        String toDate = LocalDate.now().plusDays(3).toString();
+        String toDate = LocalDate.now().plusDays(2).toString(); // Включая сегодня + ещё 2 дня
 
         raspContent(ctx, fromDate, toDate, groupName, subgroupName);
     }

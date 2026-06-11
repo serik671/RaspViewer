@@ -37,8 +37,8 @@ main div {
 main .raspContent {
 	display: flex;
 	flex-direction: row;
-	justify-content: flex-start;
-	align-self: center;
+	flex-wrap: wrap;
+	justify-content: center;
 }
 
 main .raspContent table {
