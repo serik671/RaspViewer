@@ -9,7 +9,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.collections4.ListUtils;
@@ -22,6 +21,8 @@ import ru.sbmpei.serik.raspviewer.model.StudSubject;
 import ru.sbmpei.serik.raspviewer.model.Subject;
 import ru.sbmpei.serik.raspviewer.parser.model.StudSubject.SubjectInfo;
 
+import static ru.sbmpei.serik.raspviewer.RaspPatterns.*;
+
 /**
  *
  * @author SLakeev
@@ -29,20 +30,6 @@ import ru.sbmpei.serik.raspviewer.parser.model.StudSubject.SubjectInfo;
 public class RaspModelMapper {
 
     private static final Logger LOGGER = LogManager.getLogger();
-
-    private static final String COURSE_GROUP_NAME = "courseNumber";
-    private static final Pattern COURSE_NUMBER_PATTERN = Pattern.compile("(?<" + COURSE_GROUP_NAME + ">\\d+)\\sкурс");
-
-    private static final String WEEK_GROUP_NAME = "weeks";
-    private static final String WEEK_DELIMITER = Pattern.quote(",");
-    private static final Pattern WEEK_NUMBERS_PATTERN = Pattern.compile("(?<" + WEEK_GROUP_NAME + ">(\\d+" + WEEK_DELIMITER + ")*\\d+)\\sн\\.");
-
-    private static final Pattern AUDIENCE_PATTERN = Pattern.compile("\\d{1,3}$|[A-Я]\\s\\d{1,3}$|[A-я]+$");
-    private static final Pattern SUBGROUP_PATTERN = Pattern.compile("\\d+\\sпгр.");
-    private static final Pattern PEDANTIC_TEACHER_PATTERN = Pattern.compile("([a-я]+\\.)+\\s[A-я]+\\s[A-Я]\\.[A-Я]\\.");
-    private static final Pattern TEACHER_PATTERN = Pattern.compile("([a-я]+\\.)+\\s[A-Я].{1,20}\\s[A-Я]\\.[A-Я]\\.");
-
-    private static final Pattern SUBGROUP_WEEKS_PATTERN = Pattern.compile(SUBGROUP_PATTERN.pattern() + "\\s" + WEEK_NUMBERS_PATTERN.pattern());
 
     public static List<Group> transformRaspModel(Map<String, ru.sbmpei.serik.raspviewer.parser.model.StudGroup> raspModel) {
         List<Group> groups = new ArrayList<>();
@@ -81,31 +68,55 @@ public class RaspModelMapper {
     }
 
     private static void addStudSubjectToGroup(StudGroup studGroup, ru.sbmpei.serik.raspviewer.parser.model.StudSubject studSubject, String timeKey, DayOfWeek dayKey, StudSubject.Type type) {
+        List<String> subjectTitleList = subjectTitleList(studSubject.title());
+        for (String studSubjectTitle : subjectTitleList) {
+            addOneStudSubjectToGroup(studGroup, studSubjectTitle, studSubject.info(), timeKey, dayKey, type);
+        }
+    }
+
+    private static void addOneStudSubjectToGroup(StudGroup studGroup, String studSubjectTitle, List<SubjectInfo> studSubjectInfo, String timeKey, DayOfWeek dayKey, StudSubject.Type type) {
         String audience = StringUtils.firstNonBlank(
-                audienceFromValue(studSubject.title().strip()),
-                audienceFromSubjectInfo(studSubject.info())
+                audienceFromValue(studSubjectTitle.strip()),
+                audienceFromSubjectInfo(studSubjectInfo)
         );
 
         List<Integer> weeks = ListUtils.union(
-                weeksFromValue(studSubject.title()),
-                weeksFromSubjectInfo(studSubject.info())
+                weeksFromValue(studSubjectTitle),
+                weeksFromSubjectInfo(studSubjectInfo)
         );
         List<Subject.Subgroup> subgroups = ListUtils.union(
-                subgroupsFromValue(studSubject.title()),
-                subgroupsFromSubjectInfo(studSubject.info())
+                subgroupsFromValue(studSubjectTitle),
+                subgroupsFromSubjectInfo(studSubjectInfo)
         );
 
-        StudSubject subject = new StudSubject(subjectName(studSubject.title()),
-                dayKey, timeKey, type, audience,
-                weeks,
-                teachersFromSubjectTitle(studSubject.title()),
-                subgroups
-        );
-        studSubject.info().stream()
+        StudSubject subject = new StudSubject();
+
+        try {
+            subject.setTitle(subjectName(studSubjectTitle));
+        } catch (Exception e) {
+            LOGGER.warn("В строке '{}' не удалось распознать название предмета.", studSubjectTitle);
+            subject.setTitle(IO.readln("Введите его вручную: "));
+        }
+
+        try {
+            subject.setTeachers(teachersFromSubjectTitle(studSubjectTitle));
+        } catch (Exception e) {
+            LOGGER.warn("В строке '{}' не удалось распознать преподавателя.", studSubjectTitle);
+            subject.setTitle(IO.readln("Введите его вручную: "));
+        }
+
+        subject.setDay(dayKey);
+        subject.setTimeString(timeKey);
+        subject.setType(type);
+        subject.setAudience(audience);
+        subject.setWeeks(weeks);
+        subject.setSubgroups(subgroups);
+        studGroup.getSubjects().add(subject);
+
+        studSubjectInfo.stream()
                 .filter(info -> info.type() == SubjectInfo.Type.ANOTHER_TIME)
                 .map(info -> subject.withTimeString(info.value()))
                 .forEach(studGroup.getSubjects()::add);
-        studGroup.getSubjects().add(subject);
     }
 
     private static List<Integer> weeksFromSubjectInfo(List<SubjectInfo> info) {
@@ -134,27 +145,18 @@ public class RaspModelMapper {
         return Collections.unmodifiableList(weeksList);
     }
 
-    private static List<String> teachersFromSubjectTitle(String title) {
-        return TEACHER_PATTERN.matcher(title).results()
+    private static List<String> teachersFromSubjectTitle(String title) throws Exception {
+        List<String> teachers = TEACHER_PATTERN.matcher(title).results()
                 .map(MatchResult::group)
-                .map(RaspModelMapper::pedanticTeacherCheck)
                 .collect(Collectors.toList());
+        if (!teachers.isEmpty()) {
+            return teachers;
+        } else {
+            throw new IllegalArgumentException("Don't find teacher in subject title: " + title);
+        }
     }
 
-    private static String pedanticTeacherCheck(String teacher) {
-        Matcher matcher = PEDANTIC_TEACHER_PATTERN.matcher(teacher);
-        if (!matcher.find()) {
-            String otherTeacher = IO.readln("!Возможно! преподаватель (" + teacher + ") указан некорректно."
-                    + "\nВведите преподавателя корректно, или нажмите Enter: ");
-            return StringUtils.isBlank(otherTeacher) ? teacher : otherTeacher;
-        }
-        if (!Objects.equals(matcher.group(), teacher)) {
-            LOGGER.warn("The teacher '{}' parsed not correct", teacher);
-        }
-        return teacher;
-    }
-
-    private static String subjectName(String title) {
+    private static String subjectName(String title) throws Exception {
         Matcher matcher = TEACHER_PATTERN.matcher(title);
         if (matcher.find()) {
             return title.substring(0, matcher.start() - 1).strip();
@@ -218,6 +220,20 @@ public class RaspModelMapper {
             return matcher.group();
         }
         return null;
+    }
+
+    private static List<String> subjectTitleList(String title) {
+        List<String> titleList = new ArrayList<>();
+        Matcher matcher = SUBJECT_FACTOR.matcher(title);
+        int startIndex = -1;
+        while (matcher.find()) {
+            if (startIndex != -1) {
+                titleList.add(title.substring(startIndex, matcher.start() - 1));
+            }
+            startIndex = matcher.start();
+        }
+        titleList.add(title.substring(startIndex));
+        return titleList.stream().map(String::strip).toList();
     }
 
 }

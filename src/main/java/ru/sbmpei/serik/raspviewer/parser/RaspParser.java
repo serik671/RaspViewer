@@ -7,7 +7,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
@@ -27,6 +26,8 @@ import ru.sbmpei.serik.raspviewer.parser.model.StudSubject.SubjectInfo;
 import ru.sbmpei.serik.raspviewer.parser.model.WorkDay;
 import ru.sbmpei.serik.raspviewer.parser.model.WorkSubject;
 
+import static ru.sbmpei.serik.raspviewer.RaspPatterns.*;
+
 /**
  *
  * @author SLakeev
@@ -40,9 +41,6 @@ public class RaspParser {
     private final int WORK_TIME_COLUMN = 1;
 
     private final CellRangeAddress EMPTY_ADDRESS = CellRangeAddress.valueOf("A1:A1");
-
-    private final Pattern CLASSES_INFO_PATTERN = Pattern.compile("\\d\\sи\\s\\d\\sпара");
-    private final Pattern SUBJECT_FACTOR = Pattern.compile("([a-я]+\\.)+\\s[A-Я].{1,20}\\s[A-Я]\\.[A-Я]\\.");
 
     public static Map<String, DayOfWeek> dayOfWeek = Collections.unmodifiableMap(
             Map.of(
@@ -268,8 +266,8 @@ public class RaspParser {
                 throw new IllegalArgumentException("Bad classes info in title: " + matcher.group());
             }
             if (classesArray.length > 1) {
+                LOGGER.warn("Текущая и указанные пары не совпадают.");
                 IO.println("Значение ячейки: '" + studSubject.title() + "'");
-                IO.println("Текущая и указанные пары не совпадают.");
                 IO.println("Текущая для этой строки пара: " + currentClass + ". Указано: " + matcher.group());
                 String number = IO.readln("Вместо (" + matcher.group() + "), указать " + currentClass + " и (цифра): ");
                 return Integer.parseInt(number);

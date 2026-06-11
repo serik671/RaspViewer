@@ -2,23 +2,27 @@ package ru.sbmpei.serik.raspviewer.model;
 
 import java.time.DayOfWeek;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  *
  * @author SLakeev
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class StudSubject implements Subject, Comparable<StudSubject> {
 
-    private final String title;
-    private final DayOfWeek day;
-    private final String timeString;
-    private final Type type;
-    private final String audience;
-    private final List<Integer> weeks;
-    private final List<String> teachers;
-    private final List<Subject.Subgroup> subgroups;
+    private String title;
+    private DayOfWeek day;
+    private String timeString;
+    private Type type;
+    private String audience;
+    private List<Integer> weeks;
+    private List<String> teachers;
+    private List<Subject.Subgroup> subgroups;
 
     public static enum Type {
         NUMERATOR, DENOMINATOR, EVEN, ODD
