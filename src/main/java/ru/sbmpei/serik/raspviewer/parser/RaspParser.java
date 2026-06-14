@@ -10,8 +10,8 @@ import java.util.regex.Matcher;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -20,13 +20,12 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellAddress;
 import org.apache.poi.ss.util.CellRangeAddress;
+import static ru.sbmpei.serik.raspviewer.RaspPatterns.*;
 import ru.sbmpei.serik.raspviewer.parser.model.StudGroup;
 import ru.sbmpei.serik.raspviewer.parser.model.StudSubject;
 import ru.sbmpei.serik.raspviewer.parser.model.StudSubject.SubjectInfo;
 import ru.sbmpei.serik.raspviewer.parser.model.WorkDay;
 import ru.sbmpei.serik.raspviewer.parser.model.WorkSubject;
-
-import static ru.sbmpei.serik.raspviewer.RaspPatterns.*;
 
 /**
  *
@@ -42,7 +41,7 @@ public class RaspParser {
 
     private final CellRangeAddress EMPTY_ADDRESS = CellRangeAddress.valueOf("A1:A1");
 
-    public static Map<String, DayOfWeek> dayOfWeek = Collections.unmodifiableMap(
+    private static final Map<String, DayOfWeek> DAY_OF_WEEK = Collections.unmodifiableMap(
             Map.of(
                     "понедельник", DayOfWeek.MONDAY,
                     "вторник", DayOfWeek.TUESDAY,
@@ -300,7 +299,7 @@ public class RaspParser {
             return null;
         }
         Cell workDay = firstCellFromRegion(sheet, workDayRegion);
-        return dayOfWeek.get(cellValue(workDay).toLowerCase());
+        return DAY_OF_WEEK.get(cellValue(workDay).toLowerCase());
     }
 
     private String groupNameForColumn(Sheet sheet, int colInd) {

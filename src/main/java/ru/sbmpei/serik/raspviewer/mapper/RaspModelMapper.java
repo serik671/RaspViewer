@@ -15,13 +15,13 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import static ru.sbmpei.serik.raspviewer.RaspPatterns.*;
 import ru.sbmpei.serik.raspviewer.model.Group;
 import ru.sbmpei.serik.raspviewer.model.StudGroup;
 import ru.sbmpei.serik.raspviewer.model.StudSubject;
 import ru.sbmpei.serik.raspviewer.model.Subject;
+import static ru.sbmpei.serik.raspviewer.parser.model.StudSubject.EMPTY;
 import ru.sbmpei.serik.raspviewer.parser.model.StudSubject.SubjectInfo;
-
-import static ru.sbmpei.serik.raspviewer.RaspPatterns.*;
 
 /**
  *
@@ -76,33 +76,37 @@ public class RaspModelMapper {
 
     private static void addOneStudSubjectToGroup(StudGroup studGroup, String studSubjectTitle, List<SubjectInfo> studSubjectInfo, String timeKey, DayOfWeek dayKey, StudSubject.Type type) {
         String audience = StringUtils.firstNonBlank(
-                audienceFromValue(studSubjectTitle.strip()),
-                audienceFromSubjectInfo(studSubjectInfo)
+                audienceFromSubjectInfo(studSubjectInfo),
+                audienceFromValue(studSubjectTitle.strip())
         );
 
         List<Integer> weeks = ListUtils.union(
-                weeksFromValue(studSubjectTitle),
-                weeksFromSubjectInfo(studSubjectInfo)
+                weeksFromSubjectInfo(studSubjectInfo),
+                weeksFromValue(studSubjectTitle)
         );
         List<Subject.Subgroup> subgroups = ListUtils.union(
-                subgroupsFromValue(studSubjectTitle),
-                subgroupsFromSubjectInfo(studSubjectInfo)
+                subgroupsFromSubjectInfo(studSubjectInfo),
+                subgroupsFromValue(studSubjectTitle)
         );
 
         StudSubject subject = new StudSubject();
 
-        try {
-            subject.setTitle(subjectName(studSubjectTitle));
-        } catch (Exception e) {
-            LOGGER.warn("В строке '{}' не удалось распознать название предмета.", studSubjectTitle);
-            subject.setTitle(IO.readln("Введите его вручную: "));
-        }
+        if (StringUtils.isBlank(audience) || EMPTY.title().equals(audience)) {
+            subject.setTitle(studSubjectTitle);
+        } else {
+            try {
+                subject.setTitle(subjectName(studSubjectTitle));
+            } catch (Exception e) {
+                LOGGER.warn("В строке '{}' не удалось распознать название предмета.", studSubjectTitle);
+                subject.setTitle(IO.readln("Введите его вручную: "));
+            }
 
-        try {
-            subject.setTeachers(teachersFromSubjectTitle(studSubjectTitle));
-        } catch (Exception e) {
-            LOGGER.warn("В строке '{}' не удалось распознать преподавателя.", studSubjectTitle);
-            subject.setTitle(IO.readln("Введите его вручную: "));
+            try {
+                subject.setTeachers(teachersFromSubjectTitle(studSubjectTitle));
+            } catch (Exception e) {
+                LOGGER.warn("В строке '{}' не удалось распознать преподавателя.", studSubjectTitle);
+                subject.setTitle(IO.readln("Введите его вручную: "));
+            }
         }
 
         subject.setDay(dayKey);
@@ -228,11 +232,15 @@ public class RaspModelMapper {
         int startIndex = -1;
         while (matcher.find()) {
             if (startIndex != -1) {
-                titleList.add(title.substring(startIndex, matcher.start() - 1));
+                titleList.add(title.substring(startIndex, matcher.start()));
             }
             startIndex = matcher.start();
         }
-        titleList.add(title.substring(startIndex));
+        if (startIndex == -1) {
+            titleList.add(title);
+        } else {
+            titleList.add(title.substring(startIndex));
+        }
         return titleList.stream().map(String::strip).toList();
     }
 
