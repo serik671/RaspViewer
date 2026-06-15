@@ -18,7 +18,10 @@ public class ClientController {
 
     public void addClient(SseClient client) {
         client.keepAlive();
-        client.onClose(() -> clients.remove(client));
+        client.onClose(() -> {
+            clients.remove(client);
+            LOGGER.info("Remove client {}", client);
+        });
         clients.add(client);
         LOGGER.info("Add client {}", client);
     }
