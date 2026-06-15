@@ -35,7 +35,8 @@ public class RaspViewerCLI implements Runnable {
     @Override
     public void run() {
         while (!quit) {
-            String prompt = StringUtils.isBlank(currentGroup) ? "RaspViewer_> " : "RaspViewer_" + currentGroup + "_> ";
+            String prompt = StringUtils.isBlank(currentGroup)
+                    ? "RaspViewer_> " : "RaspViewer_" + currentGroup + "_> ";
             String cmd = IO.readln(prompt);
             switch (cmd) {
                 case StringUtils.EMPTY -> {
