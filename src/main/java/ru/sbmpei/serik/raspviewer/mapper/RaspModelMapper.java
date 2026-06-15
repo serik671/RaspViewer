@@ -95,16 +95,15 @@ public class RaspModelMapper {
             subject.setTitle(studSubjectTitle);
         } else {
             try {
-                subject.setTitle(subjectName(studSubjectTitle));
-            } catch (Exception e) {
-                LOGGER.warn("В строке '{}' не удалось распознать название предмета.", studSubjectTitle);
-                subject.setTitle(IO.readln("Введите его вручную: "));
-            }
-
-            try {
                 subject.setTeachers(teachersFromSubjectTitle(studSubjectTitle));
             } catch (Exception e) {
                 LOGGER.warn("В строке '{}' не удалось распознать преподавателя.", studSubjectTitle);
+                subject.setTeachers(List.of(IO.readln("Введите его вручную: ")));
+            }
+            try {
+                subject.setTitle(subjectName(studSubjectTitle, subject.getTeachers()));
+            } catch (Exception e) {
+                LOGGER.warn("В строке '{}' не удалось распознать название предмета.", studSubjectTitle);
                 subject.setTitle(IO.readln("Введите его вручную: "));
             }
         }
@@ -160,10 +159,20 @@ public class RaspModelMapper {
         }
     }
 
-    private static String subjectName(String title) throws Exception {
+    private static String subjectName(String title, List<String> teachers) throws Exception {
+        if (!teachers.isEmpty()) {
+            String teacher = teachers.stream()
+                    .filter(it -> title.contains(it))
+                    .findFirst()
+                    .orElse(StringUtils.EMPTY);
+            if (StringUtils.isNotBlank(teacher)) {
+                int teacherContainsIndex = title.indexOf(teacher);
+                return title.substring(0, teacherContainsIndex).strip();
+            }
+        }
         Matcher matcher = TEACHER_PATTERN.matcher(title);
         if (matcher.find()) {
-            return title.substring(0, matcher.start() - 1).strip();
+            return title.substring(0, matcher.start()).strip();
         } else {
             throw new IllegalArgumentException("Don't find teacher in subject title: " + title);
         }
