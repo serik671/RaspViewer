@@ -10,11 +10,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RaspViewer</title>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
+
+    <script src="/js/htmx.min.js"></script>
+    <script src="/js/htmx-ext-sse.js"></script>
 </head>
-<body style='height: 100%'>
+<body hx-ext="sse" sse-connect="/current-time" style='height: 100%'>
     <header>
         <h1>Учебное расписание</h1>
-        <h2>Идёт ${week} неделя</h2>
+        <h2>Идёт <span sse-swap="current-week">${week}</span> неделя</h2>
     </header>
 
     <main>
@@ -55,8 +58,7 @@
     </main>
 
     <footer>
-        <div id='time' class="time">${java.time.LocalDateTime.now().toString()}</div>
-        <script src="/js/htmx.min.js"></script>
+        <div sse-swap="current-time">${java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))}</div>
     </footer>
 </body>
 </html>

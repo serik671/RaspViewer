@@ -110,14 +110,12 @@ public class RaspController {
 
         LocalDate today = LocalDate.now();
 
-        String fromDate = today
-                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                .toString();
-        String toDate = today
-                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
-                .toString();
+        LocalDate fromDate = today
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate toDate = fromDate
+                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
 
-        raspContent(ctx, fromDate, toDate, groupName, subgroupName);
+        raspContent(ctx, fromDate.toString(), toDate.toString(), groupName, subgroupName);
     }
 
     public void raspContentForNextWeek(Context ctx) {
@@ -126,14 +124,12 @@ public class RaspController {
 
         LocalDate dayOnNextWeek = LocalDate.now().plusWeeks(1);
 
-        String fromDate = dayOnNextWeek
-                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                .toString();
-        String toDate = dayOnNextWeek
-                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
-                .toString();
+        LocalDate fromDate = dayOnNextWeek
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate toDate = fromDate
+                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
 
-        raspContent(ctx, fromDate, toDate, groupName, subgroupName);
+        raspContent(ctx, fromDate.toString(), toDate.toString(), groupName, subgroupName);
     }
 
     public void raspContent(Context ctx) {

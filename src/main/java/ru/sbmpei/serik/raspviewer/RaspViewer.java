@@ -9,7 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.quartz.SchedulerException;
+import ru.sbmpei.serik.raspviewer.controller.ClientController;
 import ru.sbmpei.serik.raspviewer.controller.RaspController;
+import ru.sbmpei.serik.raspviewer.cron.CurrentTimeScheduler;
+import ru.sbmpei.serik.raspviewer.cron.CurrentWeekScheduler;
 import ru.sbmpei.serik.raspviewer.service.RaspService;
 
 /**
@@ -43,6 +47,7 @@ public class RaspViewer {
         new Thread(new RaspViewerCLI(raspService)).start();
 
         RaspController raspCtrl = RaspController.of(raspService);
+        ClientController clientCtrl = new ClientController();
 
         Javalin.create(conf -> {
             conf.fileRenderer(new JavalinJte(JavalinJte.Companion.directoryTemplateEngine()));
@@ -55,7 +60,15 @@ public class RaspViewer {
             conf.routes.post("/raspForCurrentWeek", raspCtrl::raspContentForCurrentWeek);
             conf.routes.post("/raspForNextWeek", raspCtrl::raspContentForNextWeek);
             conf.routes.post("/rasp", raspCtrl::raspContent);
+            conf.routes.sse("/current-time", clientCtrl::addClient);
         }).start(80);
+
+        try {
+            new CurrentTimeScheduler(clientCtrl).start();
+            new CurrentWeekScheduler(raspService, clientCtrl).start();
+        } catch (SchedulerException e) {
+            LOGGER.warn(e);
+        }
 
     }
 

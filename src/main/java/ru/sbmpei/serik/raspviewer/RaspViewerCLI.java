@@ -50,7 +50,7 @@ public class RaspViewerCLI implements Runnable {
                     showGroups();
                 }
                 case SELECT_CMD -> {
-                    String groupName = IO.readln("Group name: ");
+                    String groupName = IO.readln("Название группы: ");
                     selectGroup(groupName);
                 }
                 case SHOW_CMD -> {
@@ -63,7 +63,7 @@ public class RaspViewerCLI implements Runnable {
                     showCurrentWeek();
                 }
                 default -> {
-                    IO.println("Not correct command");
+                    IO.println("Неизвестная команда");
                 }
             }
         }
@@ -81,6 +81,7 @@ public class RaspViewerCLI implements Runnable {
 
     private void showGroups() {
         service.groupList().stream().map(Group::getName).forEach(IO::println);
+        IO.println("-".repeat(10) + "\nВсего: " + service.groupList().size());
     }
 
     private void selectGroup(String title) {
@@ -103,6 +104,9 @@ public class RaspViewerCLI implements Runnable {
                         IO.print(subject.getTimeString() + "|" + subject.getTitle() + "|" + subject.getAudience());
                         if (!subject.getTeachers().isEmpty()) {
                             IO.print("|" + subject.getTeachers());
+                        }
+                        if (!subject.getWeeks().isEmpty()) {
+                            IO.print("|" + "weeks: " + subject.getWeeks());
                         }
                         subject.getSubgroups().forEach(sg -> {
                             IO.print("|" + sg.getName() + ": " + sg.getWeeks());
