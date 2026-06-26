@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -145,6 +146,17 @@ public class RaspModelMapper {
                     .collect(Collectors.toList());
             weeksList.addAll(collectedWeeks);
         }
+
+        matcher = WEEK_PERIOD_PATTERN.matcher(value);
+        while (matcher.find()) {
+            String fromWeek = matcher.group(WEEK_FROM_GROUP_NAME);
+            String toWeek = matcher.group(WEEK_TO_GROUP_NAME);
+            int fromWeekValue = Integer.parseInt(fromWeek);
+            int toWeekValue = Integer.parseInt(toWeek);
+            IntStream.rangeClosed(fromWeekValue, toWeekValue)
+                    .forEach(weeksList::add);
+        }
+
         return Collections.unmodifiableList(weeksList);
     }
 

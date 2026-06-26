@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.contains;
 import org.junit.jupiter.api.Test;
 import ru.sbmpei.serik.raspviewer.model.Group;
 import ru.sbmpei.serik.raspviewer.model.Subject;
@@ -104,6 +105,44 @@ public class RaspModelMapperTest {
         assertThat(subject.getTeachers().get(1), is("доц. Тихонов В.А."));
         assertThat(subject.getTeachers().get(2), is("ст.пр. Гетманцев Л.Ю."));
 
+    }
+
+    @Test
+    public void weeksRangeTest() {
+        Map<String, StudGroup> params = new HashMap<>();
+        WorkSubject workSubject = new WorkSubject();
+        StudSubject studSubject = new StudSubject("лк Основания и фундаменты              "
+                + "                проф. Борисов А.В. с 1 по 10 нед."
+                + "                кр Основания и фундаменты"
+                + "                проф. Борисов А.В. 11,12 н.",
+                List.of(new SubjectInfo("503", SubjectInfo.Type.AUDIENCE)));
+        workSubject.setNumeratorSubject(studSubject);
+        workSubject.setDenominatorSubject(studSubject);
+        params.put("ТГ-01", new StudGroup(
+                Map.of(DayOfWeek.TUESDAY, new WorkDay(
+                        Map.of("15.45 - 17.15", workSubject))),
+                "2 курс"));
+
+        List<Group> groups = RaspModelMapper.transformRaspModel(params);
+
+        assertThat(groups, hasSize(1));
+        assertThat(groups.getFirst().getSubjects(), hasSize(4));
+        Subject subject = groups.getFirst().getSubjects()
+                .stream().filter(s -> "лк Основания и фундаменты".equals(s.getTitle()))
+                .findAny().get();
+
+        assertThat(subject.getDay(), is(DayOfWeek.TUESDAY));
+        assertThat(subject.getAudience(), is("503"));
+        assertThat(subject.getTeachers().getFirst(), is("проф. Борисов А.В."));
+        assertThat(subject.getWeeks(), contains(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+
+        subject = groups.getFirst().getSubjects()
+                .stream().filter(s -> "кр Основания и фундаменты".equals(s.getTitle()))
+                .findAny().get();
+        assertThat(subject.getDay(), is(DayOfWeek.TUESDAY));
+        assertThat(subject.getAudience(), is("503"));
+        assertThat(subject.getTeachers().getFirst(), is("проф. Борисов А.В."));
+        assertThat(subject.getWeeks(), contains(11, 12));
     }
 
 }
