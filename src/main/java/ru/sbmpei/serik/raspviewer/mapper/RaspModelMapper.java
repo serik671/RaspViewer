@@ -23,6 +23,7 @@ import ru.sbmpei.serik.raspviewer.model.StudSubject;
 import ru.sbmpei.serik.raspviewer.model.Subject;
 import static ru.sbmpei.serik.raspviewer.parser.model.StudSubject.EMPTY;
 import ru.sbmpei.serik.raspviewer.parser.model.StudSubject.SubjectInfo;
+import ru.sbmpei.serik.raspviewer.util.FuzzySubstringUtils;
 
 /**
  *
@@ -98,8 +99,9 @@ public class RaspModelMapper {
             try {
                 subject.setTeachers(teachersFromSubjectTitle(studSubjectTitle));
             } catch (Exception e) {
-                LOGGER.warn("В строке '{}' не удалось распознать преподавателя.", studSubjectTitle);
-                subject.setTeachers(List.of(IO.readln("Введите его вручную: ")));
+                LOGGER.warn("В строке '{}' не удалось распознать ни одного преподавателя.", studSubjectTitle);
+                LOGGER.info("Для ввода нескольких преподавателей используйте разделитель ';' без отступов.");
+                subject.setTeachers(List.of(IO.readln("Введите его вручную: ").split(";")));
             }
             try {
                 subject.setTitle(subjectName(studSubjectTitle, subject.getTeachers()));
@@ -172,22 +174,21 @@ public class RaspModelMapper {
     }
 
     private static String subjectName(String title, List<String> teachers) throws Exception {
-        if (!teachers.isEmpty()) {
-            String teacher = teachers.stream()
-                    .filter(it -> title.contains(it))
-                    .findFirst()
-                    .orElse(StringUtils.EMPTY);
-            if (StringUtils.isNotBlank(teacher)) {
-                int teacherContainsIndex = title.indexOf(teacher);
-                return title.substring(0, teacherContainsIndex).strip();
-            }
-        }
         Matcher matcher = TEACHER_PATTERN.matcher(title);
         if (matcher.find()) {
             return title.substring(0, matcher.start()).strip();
-        } else {
-            throw new IllegalArgumentException("Don't find teacher in subject title: " + title);
+        } else if (!teachers.isEmpty()) {
+            LOGGER.info("Попытка обнаружить предмет по нечёткому поиску подстроки");
+            int startTeacherIndex = teachers.stream()
+                    .map(teacher -> FuzzySubstringUtils.substringBeginIndex(title, teacher))
+                    .sorted().findFirst().orElse(-1);
+            if (startTeacherIndex > 0) {
+                String subjectTitle = title.substring(0, startTeacherIndex).strip();
+                LOGGER.info("Обнаружено название предмета: {}", subjectTitle);
+                return subjectTitle;
+            }
         }
+        throw new IllegalArgumentException("Don't find teacher in subject title: " + title);
     }
 
     private static String audienceFromSubjectInfo(List<SubjectInfo> info) {

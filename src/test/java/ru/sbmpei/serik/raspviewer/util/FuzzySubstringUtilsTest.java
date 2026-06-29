@@ -67,4 +67,73 @@ public class FuzzySubstringUtilsTest {
         assertThat(substring(text, matches), is("доц. Астахов С.П"));
     }
 
+    @Test
+    public void matchMoreThenHalfTest() {
+        String text = "лк Железобетонные стаки и каменные произвольные конструкции         ст.пр. Патенч";
+        String query = "ст.пр. Патенченкова М.А.";
+        List<Integer> matches = FuzzySubstringUtils.bestSubstringMatches(text, query);
+        IO.println(matches);
+        String subjectTitle = text.substring(0, matches.getFirst()).strip();
+        assertThat(subjectTitle, is("лк Железобетонные стаки и каменные произвольные конструкции"));
+        assertThat(substring(text, matches), is("ст.пр. Патенч"));
+    }
+
+    @Test
+    public void textRadarSubstringTest() {
+        String text = "лк Железобетонные стаки и каменные произвольные конструкции         стпрПатенченкова";
+        String query = "ст.пр. Патенченкова М.А.";
+        String substring = FuzzySubstringUtils.textRadarSubstring(text, query);
+        assertThat(substring, is("стпрПатенченкова"));
+    }
+
+    @Test
+    public void substringBeginIndexTest() {
+        String text = "кр Источники и приемники оптического излучения   доц. А стахов С.П. 2,6,10,14 н.";
+        String query = "доц. Астахов С.П.";
+        int substringBeginIndex = FuzzySubstringUtils.substringBeginIndex(text, query);
+        assertThat(text.substring(0, substringBeginIndex).strip(), is("кр Источники и приемники оптического излучения"));
+    }
+
+    @Test
+    public void substringBeginIndexTest2() {
+        String text = "кр Источники и дом церковь. Оптического излучения   доц. А стахов С.П. 2,6,10,14 н.";
+        String query = "доц. Астахов С.П.";
+        int substringBeginIndex = FuzzySubstringUtils.substringBeginIndex(text, query);
+        assertThat(text.substring(0, substringBeginIndex).strip(), is("кр Источники и дом церковь. Оптического излучения"));
+    }
+
+    @Test
+    public void substringBeginIndexTest3() {
+        String text = "кр Источники и дом церковь. Оптического излучения   доц. А стахов С.П";
+        String query = "доц. Астахов С.П.";
+        int substringBeginIndex = FuzzySubstringUtils.substringBeginIndex(text, query);
+        assertThat(text.substring(0, substringBeginIndex).strip(), is("кр Источники и дом церковь. Оптического излучения"));
+    }
+
+    @Test
+    public void substringBeginIndexTest4() {
+        String text = "лк Железобетонные стаки и каменные произвольные конструкции         ст.пр. Патенч";
+        String query = "ст.пр. Патенченкова М.А.";
+        int substringBeginIndex = FuzzySubstringUtils.substringBeginIndex(text, query);
+        assertThat(text.substring(0, substringBeginIndex).strip(), is("лк Железобетонные стаки и каменные произвольные конструкции"));
+    }
+
+    @Test
+    public void substringBeginIndexTest5() {
+        String query = "ст. пр. Иванова С. П.";
+        String text
+                = "лк Теория проектирования стпр. Иванова С. П";
+        int substringBeginIndex = FuzzySubstringUtils.substringBeginIndex(text, query);
+        assertThat(text.substring(0, substringBeginIndex).strip(), is("лк Теория проектирования"));
+    }
+
+    @Test
+    public void substringBeginIndexTest6() {
+        String query = "ст. пр. Иванова С. П.";
+        String text
+                = "лк Теория проектирования стпр. Иванова С. П";
+        String substring = FuzzySubstringUtils.textRadarSubstring(text, query);
+        assertThat(substring, is("стпр. Иванова С. П"));
+    }
+
 }
