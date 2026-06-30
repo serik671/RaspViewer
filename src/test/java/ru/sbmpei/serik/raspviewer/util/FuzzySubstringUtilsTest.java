@@ -136,4 +136,33 @@ public class FuzzySubstringUtilsTest {
         assertThat(substring, is("стпр. Иванова С. П"));
     }
 
+    @Test
+    public void substringBeginIndexTest7() {
+        String query = "доц. Блинов А.О.";
+        String text
+                = "лк Сопротивление материалов                                                                     доц Блинов А.О.";
+        String substring = FuzzySubstringUtils.textRadarSubstring(text, query);
+        assertThat(substring, is("доц Блинов А.О."));
+        int index = FuzzySubstringUtils.substringBeginIndex(text, query);
+        assertThat(text.substring(0, index).strip(), is("лк Сопротивление материалов"));
+    }
+
+    @Test
+    public void substringBeginIndexNotFoundTest() {
+        String query = "доц. Заводянская Е.А.";
+        String text
+                = "лк Теория проектирования стпр. Иванова С. П";
+        int index = FuzzySubstringUtils.substringBeginIndex(text, query);
+        assertThat(index, is(-1));
+    }
+
+    @Test
+    public void substringBeginIndexNotFoundTest2() {
+        String query = "доц. Заводянская Е.А.";
+        String text
+                = "у Иностранный язык                                                                       доц Макерова Н.В.";
+        int index = FuzzySubstringUtils.substringBeginIndex(text, query);
+        assertThat(index, is(-1));
+    }
+
 }

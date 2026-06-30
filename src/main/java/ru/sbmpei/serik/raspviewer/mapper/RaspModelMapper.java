@@ -3,10 +3,12 @@ package ru.sbmpei.serik.raspviewer.mapper;
 import java.time.DayOfWeek;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
@@ -32,6 +34,8 @@ import ru.sbmpei.serik.raspviewer.util.FuzzySubstringUtils;
 public class RaspModelMapper {
 
     private static final Logger LOGGER = LogManager.getLogger();
+
+    private static final Set<String> correctTeachers = new HashSet<>();
 
     public static List<Group> transformRaspModel(Map<String, ru.sbmpei.serik.raspviewer.parser.model.StudGroup> raspModel) {
         List<Group> groups = new ArrayList<>();
@@ -94,17 +98,38 @@ public class RaspModelMapper {
         StudSubject subject = new StudSubject();
 
         if (StringUtils.isBlank(audience) || EMPTY.title().equals(audience)) {
-            subject.setTitle(studSubjectTitle);
+            subject.setTitle(stripSubjectTitle(studSubjectTitle));
+            if (!Objects.equals(studSubjectTitle, subject.getTitle())) {
+                LOGGER.info("Для предмета без аудитории");
+                LOGGER.info("Строка '{}' обрезалась до '{}'", studSubjectTitle, subject.getTitle());
+            }
         } else {
             try {
                 subject.setTeachers(teachersFromSubjectTitle(studSubjectTitle));
             } catch (Exception e) {
-                LOGGER.warn("В строке '{}' не удалось распознать ни одного преподавателя.", studSubjectTitle);
-                LOGGER.info("Для ввода нескольких преподавателей используйте разделитель ';' без отступов.");
-                subject.setTeachers(List.of(IO.readln("Введите его вручную: ").split(";")));
+                List<String> teachers = correctTeachers.stream()
+                        .filter(it -> FuzzySubstringUtils.substringBeginIndex(studSubjectTitle, it) > 0)
+                        .toList();
+                if (teachers.isEmpty()) {
+                    LOGGER.warn("В строке '{}' не удалось распознать ни одного преподавателя.", studSubjectTitle);
+                    LOGGER.info("Для ввода нескольких преподавателей используйте разделитель ';' без отступов.");
+                    LOGGER.info("Оставте ввод пустым, чтобы продолжить без преподавателя.");
+                    subject.setTeachers(List.of(IO.readln("Введите его вручную: ").split(";")));
+                } else {
+                    LOGGER.info("В строке '{}'\nАВТОМАТИЧЕСКИ распознаны преподаватели: '{}'", studSubjectTitle, teachers);
+                    subject.setTeachers(List.copyOf(teachers));
+                }
             }
             try {
-                subject.setTitle(subjectName(studSubjectTitle, subject.getTeachers()));
+                if (subject.getTeachers().stream().allMatch(String::isBlank)) {
+                    subject.setTitle(stripSubjectTitle(studSubjectTitle));
+                    if (!Objects.equals(studSubjectTitle, subject.getTitle())) {
+                        LOGGER.info("Для предмета без преподавателя");
+                        LOGGER.info("Строка '{}' обрезалась до '{}'", studSubjectTitle, subject.getTitle());
+                    }
+                } else {
+                    subject.setTitle(subjectName(studSubjectTitle, subject.getTeachers()));
+                }
             } catch (Exception e) {
                 LOGGER.warn("В строке '{}' не удалось распознать название предмета.", studSubjectTitle);
                 subject.setTitle(IO.readln("Введите его вручную: "));
@@ -184,7 +209,8 @@ public class RaspModelMapper {
                     .sorted().findFirst().orElse(-1);
             if (startTeacherIndex > 0) {
                 String subjectTitle = title.substring(0, startTeacherIndex).strip();
-                LOGGER.info("Обнаружено название предмета: {}", subjectTitle);
+                LOGGER.info("Обнаружено название предмета: '{}'", subjectTitle);
+                correctTeachers.addAll(teachers);
                 return subjectTitle;
             }
         }
@@ -264,6 +290,14 @@ public class RaspModelMapper {
             titleList.add(title.substring(startIndex));
         }
         return titleList.stream().map(String::strip).toList();
+    }
+
+    public static String stripSubjectTitle(String title) {
+        return title
+                .replaceAll(WEEK_NUMBERS_PATTERN.pattern(), "")
+                .replaceAll(WEEK_PERIOD_PATTERN.pattern(), "")
+                .replaceAll(SUBGROUP_PATTERN.pattern(), "")
+                .replaceAll(SUBGROUP_WEEKS_PATTERN.pattern(), "");
     }
 
 }

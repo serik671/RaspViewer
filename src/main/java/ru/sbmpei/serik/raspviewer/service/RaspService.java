@@ -129,7 +129,7 @@ public class RaspService implements Service {
         } else {
             final List<Group> existsGroups = new ArrayList<>();
             groups.forEach(newGroup -> {
-                if (groups.contains(newGroup)) {
+                if (this.groups.contains(newGroup)) {
                     existsGroups.add(newGroup);
                 } else {
                     this.groups.add(newGroup);

@@ -16,7 +16,11 @@
 				<tr>
 					<td align="center" style="white-space: nowrap">${subject.time()}</td>
 					<td align="center">${subject.title()}</td>
-					<td align="center">${subject.audience()}</td>
+					@if ("EMPTY".equals(subject.audience()))
+						<td align="center">-</td>
+					@else
+						<td align="center">${subject.audience()}</td>
+					@endif
 				</tr>
 			@else
 				<tr>

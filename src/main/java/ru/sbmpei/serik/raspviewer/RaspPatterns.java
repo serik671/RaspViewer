@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 public class RaspPatterns {
 
     public static final Pattern CLASSES_INFO_PATTERN = Pattern.compile("\\d\\sи\\s\\d\\sпара");
-    public static final Pattern SUBJECT_FACTOR = Pattern.compile("(^|\\s)[а-я]{1,3}\\s[А-Я][а-я]{2,}");
+    public static final Pattern SUBJECT_FACTOR = Pattern.compile("(^|\\s)[а-я]{1,2}\\s[А-Я][а-я]{2,}");
 
     public static final String COURSE_GROUP_NAME = "courseNumber";
     public static final Pattern COURSE_NUMBER_PATTERN = Pattern.compile("(?<" + COURSE_GROUP_NAME + ">\\d+)\\sкурс");

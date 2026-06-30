@@ -143,12 +143,20 @@ public class RaspController {
     }
 
     private void raspContent(Context ctx, String fromDate, String toDate, String groupName, String subgroupName) {
+        if (StringUtils.isAllBlank(fromDate, toDate)) {
+            ctx.result("Не указан диапазон дат");
+            return;
+        }
         if (StringUtils.isBlank(fromDate)) {
-            ctx.result("fromDate is null");
+            ctx.result("Не указана начальная дата диапазона");
             return;
         }
         if (StringUtils.isBlank(toDate)) {
-            ctx.result("toDate is null");
+            ctx.result("Не указана конечная дата диапазона");
+            return;
+        }
+        if (StringUtils.isBlank(groupName)) {
+            ctx.result("Группа не выбрана");
             return;
         }
 
@@ -156,7 +164,7 @@ public class RaspController {
             LocalDate startDate = LocalDate.parse(fromDate);
             LocalDate endDate = LocalDate.parse(toDate);
             if (startDate.isAfter(endDate)) {
-                throw new Exception("Start date is after the end date");
+                throw new Exception("Начальная дата не должна быть позже конечной");
             }
             List<DayView> days = startDate.datesUntil(endDate.plusDays(1)).map(day -> {
                 List<SubjectView> subjects = service

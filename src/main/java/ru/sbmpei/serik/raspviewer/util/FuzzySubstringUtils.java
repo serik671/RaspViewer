@@ -43,7 +43,9 @@ public class FuzzySubstringUtils {
 
         return beginIndexList.stream()
                 .map(index -> substringMatches(text, query, index))
-                .filter(matches -> (((float) matches.size() / query.length()) > .5f)) // Если совпадений больше половины
+                .filter(matches -> {
+                    return (((float) matches.size() / query.length()) > .5f);
+                }) // Если совпадений больше половины
                 .sorted((a, b) -> {
                     return Float.compare(score(a), score(b));
                 }).findFirst().orElse(List.of());
@@ -170,28 +172,20 @@ public class FuzzySubstringUtils {
 
     public static int substringBeginIndex(String text, String substring) {
         List<MatchGroup> findGroups = findGroups(substring, text);
-        IO.println("Groups: ");
-        for (MatchGroup g : findGroups) {
-            LOGGER.info(g);
-        }
         List<MatchGroup> groups = selectBestGroups(findGroups);
-        IO.println("Best groups: ");
-        for (MatchGroup g : groups) {
-            LOGGER.info(g);
-        }
-        double relevance = relevance(findGroups, text);
+        double relevance = relevance(groups, substring);
         String radarText = extractMatchGroups(text, groups);
         LOGGER.info("\nText: {}\nSubstring: {}\nRelevance: {}\nRadarText: {}",
                 text,
                 substring,
                 relevance,
                 radarText);
-        if (relevance < 0.5) {
-            return FuzzySubstringUtils
-                    .bestSubstringMatches(text, substring)
-                    .stream().findFirst().orElse(-1);
-        }
-        return text.indexOf(radarText);
+        int bestMatchIndex = FuzzySubstringUtils
+                .bestSubstringMatches(text, substring)
+                .stream().findFirst().orElse(-1);
+        int radarIndex = relevance < 0.5 ? -1 : text.indexOf(radarText);
+
+        return radarIndex < 0 ? bestMatchIndex : radarIndex;
     }
 
 }
