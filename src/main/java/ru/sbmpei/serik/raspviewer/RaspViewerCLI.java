@@ -68,6 +68,7 @@ public class RaspViewerCLI implements Runnable {
                 }
             }
         }
+        IO.println("Программа успешно завершена.");
         System.exit(0);
     }
 
