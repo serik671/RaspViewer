@@ -1,8 +1,11 @@
 package ru.sbmpei.serik.raspviewer;
 
+import gg.jte.TemplateEngine;
+import gg.jte.resolve.DirectoryCodeResolver;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import io.javalin.rendering.template.JavalinJte;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -49,8 +52,15 @@ public class RaspViewer {
         RaspController raspCtrl = RaspController.of(raspService);
         ClientController clientCtrl = new ClientController();
 
+        TemplateEngine engine = TemplateEngine.create(
+                new DirectoryCodeResolver(Path.of("src/main/jte")),
+                Path.of("jte-classes"),
+                gg.jte.ContentType.Html,
+                RaspViewer.class.getClassLoader()
+        );
+
         Javalin.create(conf -> {
-            conf.fileRenderer(new JavalinJte(JavalinJte.Companion.directoryTemplateEngine()));
+            conf.fileRenderer(new JavalinJte(engine));
             conf.staticFiles.add("public", Location.CLASSPATH);
             conf.routes.get("/", raspCtrl::main);
             conf.routes.post("/subgroup", raspCtrl::subgroup);
